@@ -40,6 +40,10 @@ if not MONGODB_URI:
 
 app = FastAPI(title="Codexar Auth API")
 
+@app.get("/")
+def health_check():
+    return {"status": "ok", "message": "Codexar API is running"}
+
 # Setup CORS to allow frontend
 app.add_middleware(
     CORSMiddleware,
