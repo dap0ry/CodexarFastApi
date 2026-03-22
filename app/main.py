@@ -468,12 +468,8 @@ async def get_friends_lists(email: str = Depends(get_current_user)):
 
 @app.get("/api/friends/activity")
 async def get_activity_feed(email: str = Depends(get_current_user)):
-    # Mock data mirroring user request wireframe exactly
-    return [
-        {"text": "Amigo 1 resolvio: (nombre ejercicio) nuevo record de puntuacion de ejercicio (920)"},
-        {"text": "Amigo 2 ha subido de rango: amigo 2 ha derrotado a (nombre enemigo) y ha subido a diamante"},
-        {"text": "Amigo 3 es heroico: amigo 3 esta entre los 10 mejores del mundo WOW"}
-    ]
+    # Currently no activity data
+    return []
 
 # ====== Profile Management Route ======
 
