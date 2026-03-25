@@ -42,7 +42,7 @@ app = FastAPI(title="Codexar Auth API")
 
 @app.get("/")
 def health_check():
-    return {"status": "ok", "message": "Codexar API is running"}
+    return {"status": "ok"}
 
 # Setup CORS to allow frontend
 app.add_middleware(
