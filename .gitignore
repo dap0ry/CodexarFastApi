@@ -1,1 +1,37 @@
-".env" 
+# ── Entorno virtual ──────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Python cache ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Variables de entorno / secretos ──────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── IDEs ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Testing / cobertura ──────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── Build / dist ─────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
