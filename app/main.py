@@ -40,7 +40,7 @@ if not MONGODB_URI:
 
 app = FastAPI(title="Codexar Auth API")
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok"}
 
