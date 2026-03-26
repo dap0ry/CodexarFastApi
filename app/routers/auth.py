@@ -3,15 +3,18 @@ import string
 from datetime import datetime, timedelta
 
 import bcrypt
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import jwt, JWTError
 
 import app.core.database as database
-from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_SECRET, ALGORITHM
+from app.core.security import get_password_hash, verify_password, create_access_token, get_current_user
 from app.models.user import UserRegister, UserLogin, Token, EmailVerifyRequest, ResendVerificationRequest
 from app.services.email_service import send_verification_email
 
 router = APIRouter()
+_bearer = HTTPBearer()
 
 VERIFICATION_EXPIRE_MINUTES = 5
 
@@ -154,4 +157,47 @@ async def login_user(user: UserLogin):
         "token_type": "bearer",
         "username": db_user.get("username"),
         "is_onboarded": db_user.get("is_onboarded", False),
+    }
+
+
+async def _revoke_token(credentials: HTTPAuthorizationCredentials):
+    """Decode token and add its JTI to the revoked_tokens collection."""
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[ALGORITHM])
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if jti:
+            await database.db.revoked_tokens.insert_one({
+                "jti": jti,
+                "expires_at": datetime.utcfromtimestamp(exp),
+            })
+    except JWTError:
+        pass  # Token already invalid — nothing to revoke
+
+
+@router.post("/api/auth/logout")
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(_bearer)):
+    await _revoke_token(credentials)
+    return {"message": "Sesión cerrada correctamente"}
+
+
+@router.post("/api/auth/refresh", response_model=Token)
+async def refresh_token(
+    email: str = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+):
+    # Revoke old token
+    await _revoke_token(credentials)
+
+    # Issue new token
+    db_user = await database.db.users.find_one({"email": email})
+    new_token = create_access_token(
+        data={"sub": email},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return {
+        "access_token": new_token,
+        "token_type": "bearer",
+        "username": db_user.get("username") if db_user else None,
+        "is_onboarded": db_user.get("is_onboarded", False) if db_user else False,
     }

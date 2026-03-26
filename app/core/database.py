@@ -10,8 +10,9 @@ async def startup_db_client():
     client = AsyncIOMotorClient(MONGODB_URI)
     db = client[DB_NAME]
     print(f"✅ Connected to MongoDB Atlas -> Database: {DB_NAME}")
-    # TTL index: MongoDB auto-deletes expired verification docs
+    # TTL indexes: MongoDB auto-deletes expired docs
     await db.email_verifications.create_index("expires_at", expireAfterSeconds=0)
+    await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
     # Inject / update exercises without changing their _id values
     from app.exercises_data import EXERCISES_SEED
     existing_count = await db.exercises.count_documents({})
