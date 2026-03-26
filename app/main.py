@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import *  # noqa: F401,F403 — loads env vars and cloudinary config
+from app.core.config import ALLOWED_ORIGINS
 from app.core.database import startup_db_client, shutdown_db_client
 from app.routers import auth, users, friends, exercises, matchmaking, achievements, store
 
@@ -28,10 +29,11 @@ async def api_health_check():
     return {"status": "ok", "message": "Codexar API is running"}
 
 
-# Setup CORS to allow frontend
+# Setup CORS — en local: ALLOWED_ORIGINS=* / en prod: ALLOWED_ORIGINS=https://tudominio.vercel.app
+origins = ["*"] if ALLOWED_ORIGINS == "*" else [o.strip() for o in ALLOWED_ORIGINS.split(",")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For dev only.
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
