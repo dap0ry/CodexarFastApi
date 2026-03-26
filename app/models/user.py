@@ -24,3 +24,12 @@ class OnboardData(BaseModel):
     languages: List[str]
     level: str
     description: str
+
+
+class EmailVerifyRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr

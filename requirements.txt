@@ -8,3 +8,4 @@ pydantic-settings
 python-dotenv
 cloudinary
 python-multipart
+httpx

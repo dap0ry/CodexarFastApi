@@ -1,202 +1,182 @@
 # Codexar API
 
-Backend REST API para **Codexar** — una plataforma de programación competitiva donde los usuarios resuelven ejercicios, suben su ELO y se enfrentan a otros desarrolladores en duelos en tiempo real.
+Backend REST API para **Codexar** — plataforma de programación competitiva con duelos 1v1 en tiempo real, sistema de ELO y modo ejercicios.
 
-Construida con **FastAPI** + **MongoDB Atlas** + **Cloudinary**, desplegada en **Render**.
-
----
-
-## 🚀 Stack Tecnológico
-
-| Capa | Tecnología |
-|---|---|
-| Framework | FastAPI (Python) |
-| Base de datos | MongoDB Atlas (Motor async) |
-| Autenticación | JWT (HS256, tokens de 7 días) |
-| Almacenamiento | Cloudinary (fotos de perfil) |
-| Despliegue | Render |
+**Stack:** FastAPI · Python 3.11 · MongoDB Atlas (Motor async) · Cloudinary · Brevo (email) · Render.com
 
 ---
 
-## 📦 Variables de Entorno
+## Estado del proyecto
 
-Crea un archivo `.env` en la raíz del proyecto con lo siguiente:
+### Implementado
+- [x] Autenticación JWT (HS256, 7 días)
+- [x] Registro con **verificación de email** (código 6 dígitos, TTL 5 min, Brevo API)
+- [x] Login
+- [x] Onboarding de usuario (username, avatar, lenguajes, nivel, descripción)
+- [x] Perfil: editar datos, cambiar contraseña, subir avatar (Cloudinary)
+- [x] Sistema de ELO y rangos (Bronce → Campeón)
+- [x] Ejercicios: listar, resolver, ejecución sandboxed en Python
+- [x] Matchmaking: cola ranked/unranked, long-poll 25s, batallas 1v1
+- [x] Amigos: solicitudes, aceptar/rechazar, búsqueda, activity feed
+- [x] Entorno local: venv + .env configurado
 
-```env
-MONGODB_URI=tu_cadena_de_conexion_mongodb_atlas
-JWT_SECRET=tu_clave_secreta
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
-```
+### Pendiente / Por hacer
+- [ ] Logros (`achievements.py` — placeholder vacío)
+- [ ] Tienda (`store.py` — placeholder vacío)
+- [ ] Story mode / capítulos (`/api/story/chapters`)
+- [ ] Leaderboard endpoint (actualmente calculado en `users.py`)
+- [ ] Rate limiting en endpoints de auth
+- [ ] Tests automatizados
 
 ---
 
-## 🛠️ Instalación Local
+## Configuración local
 
+### 1. Entorno virtual
 ```bash
-# 1. Clona el repositorio
-git clone https://github.com/tu-org/codexar-api.git
-cd codexar-api
-
-# 2. Crea y activa un entorno virtual
+cd CodexarFastApi
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 3. Instala las dependencias
+venv\Scripts\activate        # Windows
 pip install -r requirements.txt
-
-# 4. Configura tu archivo .env (ver sección anterior)
-
-# 5. Arranca el servidor de desarrollo
-uvicorn main:app --reload
 ```
 
-La API estará disponible en `http://localhost:8000`.  
-Documentación interactiva en `http://localhost:8000/docs`.
+### 2. Variables de entorno
+El `.env` ya existe en el repo local con los valores reales. Estructura:
+```env
+MONGODB_URI=
+JWT_SECRET=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+BREVO_API_KEY=
+BREVO_SENDER_EMAIL=onedrivexservice@gmail.com
+```
+
+### 3. Arrancar
+```bash
+uvicorn app.main:app --reload
+```
+API disponible en `http://localhost:8000`
+Swagger docs en `http://localhost:8000/docs`
 
 ---
 
-## 📡 Endpoints
-
-### Health
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET / HEAD | `/` | Health check (usado por UptimeRobot) |
-| GET | `/api/health` | Health check extendido |
-
-### Autenticación
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/api/auth/register` | Registrar un nuevo usuario |
-| POST | `/api/auth/login` | Iniciar sesión y obtener token JWT |
-
-### Usuario y Perfil
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| GET | `/api/user/me` | ✅ | Obtener perfil, ELO y rango del usuario actual |
-| GET | `/api/user/check-username/{username}` | ❌ | Comprobar si un nombre de usuario está disponible |
-| POST | `/api/user/onboard` | ✅ | Completar el onboarding (username, idiomas, avatar) |
-| POST | `/api/user/profile/update` | ✅ | Actualizar perfil, contraseña o avatar |
-| POST | `/api/user/verify-password` | ✅ | Verificar la contraseña actual |
-
-### Ejercicios
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| GET | `/api/exercises` | ✅ | Listar todos los ejercicios con estado de resolución |
-| GET | `/api/exercises/solved` | ✅ | Obtener IDs de ejercicios resueltos |
-| GET | `/api/exercises/{id}` | ✅ | Obtener un ejercicio con sus casos de prueba |
-| POST | `/api/exercises/{id}/solve` | ✅ | Enviar y ejecutar una solución contra los tests |
-
-### Amigos
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| GET | `/api/friends` | ✅ | Obtener amigos, solicitudes enviadas y recibidas |
-| GET | `/api/friends/search?q=` | ✅ | Buscar usuarios por nombre |
-| GET | `/api/friends/activity` | ✅ | Obtener feed de actividad |
-| POST | `/api/friends/request/{username}` | ✅ | Enviar solicitud de amistad |
-| POST | `/api/friends/accept/{username}` | ✅ | Aceptar solicitud de amistad |
-| POST | `/api/friends/reject/{username}` | ✅ | Rechazar solicitud de amistad |
-| POST | `/api/friends/cancel/{username}` | ✅ | Cancelar una solicitud enviada |
-
-### Matchmaking
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/api/matchmaking/join` | ✅ | Unirse a la cola de emparejamiento (long-poll, 25s) |
-| DELETE | `/api/matchmaking/leave` | ✅ | Salir de la cola de emparejamiento |
-| GET | `/api/matchmaking/match/{id}` | ✅ | Obtener el estado actual de la partida |
-| GET | `/api/matchmaking/match/{id}/poll` | ✅ | Long-poll para actualizaciones de la partida (25s) |
-| POST | `/api/matchmaking/match/{id}/submit` | ✅ | Enviar resultados de tests durante una partida |
-
-### Autenticación de rutas protegidas
-
-Todas las rutas protegidas requieren un token Bearer en la cabecera `Authorization`:
+## Arquitectura de archivos
 
 ```
-Authorization: Bearer <tu_token_jwt>
+app/
+├── main.py                  # FastAPI app, lifespan, CORS, routers
+├── exercises_data.py        # Seed de ejercicios (inyectado en startup)
+├── core/
+│   ├── config.py            # Variables de entorno (MONGODB_URI, JWT, Cloudinary, Brevo)
+│   ├── database.py          # Motor async client, TTL index email_verifications, seed
+│   └── security.py          # bcrypt, JWT create/verify, get_current_user()
+├── models/
+│   ├── user.py              # UserRegister, UserLogin, Token, EmailVerifyRequest, ResendVerificationRequest, OnboardData
+│   └── exercise.py          # ExerciseRequest
+├── routers/
+│   ├── auth.py              # /api/auth/* — register, verify-email, resend-verification, login
+│   ├── users.py             # /api/user/* — me, onboard, profile/update, check-username
+│   ├── exercises.py         # /api/exercises/*
+│   ├── friends.py           # /api/friends/*
+│   ├── matchmaking.py       # /api/matchmaking/*
+│   ├── achievements.py      # placeholder
+│   └── store.py             # placeholder
+└── services/
+    └── email_service.py     # Brevo HTTP API + template HTML cyberpunk
 ```
 
 ---
 
-## 🏆 Sistema de ELO y Rangos
+## Endpoints
 
-La plataforma usa un sistema de ranking basado en ELO. Completar ejercicios o ganar partidas otorga puntos.
+### Auth — `/api/auth`
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/register` | ❌ | Envía código 6 dígitos al email, NO crea usuario aún |
+| POST | `/verify-email` | ❌ | Valida código → crea usuario → devuelve JWT |
+| POST | `/resend-verification` | ❌ | Regenera código y reenvía email |
+| POST | `/login` | ❌ | Email + password → JWT |
+
+### Usuario — `/api/user`
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/me` | ✅ | Perfil completo: ELO, rango, global_rank, wins, streak |
+| POST | `/onboard` | ✅ | Primera configuración de perfil |
+| POST | `/profile/update` | ✅ | Actualizar perfil / contraseña / avatar |
+| POST | `/verify-password` | ✅ | Comprobar contraseña actual |
+| GET | `/check-username/{u}` | ❌ | Disponibilidad de username |
+
+### Ejercicios — `/api/exercises`
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/` | ✅ | Listar todos con estado de resolución del usuario |
+| GET | `/{id}` | ✅ | Detalle + casos de prueba |
+| POST | `/{id}/solve` | ✅ | Ejecutar solución Python (sandboxed con AST) |
+
+### Amigos — `/api/friends`
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/` | ✅ | Lista de amigos + solicitudes |
+| GET | `/search?q=` | ✅ | Buscar usuarios |
+| GET | `/activity` | ✅ | Feed de actividad |
+| POST | `/request/{username}` | ✅ | Enviar solicitud |
+| POST | `/accept/{username}` | ✅ | Aceptar solicitud |
+| POST | `/reject/{username}` | ✅ | Rechazar solicitud |
+| POST | `/cancel/{username}` | ✅ | Cancelar solicitud enviada |
+
+### Matchmaking — `/api/matchmaking`
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/join` | ✅ | Unirse a la cola (ranked/unranked) |
+| DELETE | `/leave` | ✅ | Salir de la cola |
+| GET | `/match/{id}` | ✅ | Estado de la partida |
+| GET | `/match/{id}/poll` | ✅ | Long-poll 25s para actualizaciones |
+| POST | `/match/{id}/submit` | ✅ | Enviar resultados → backend decide ganador |
+
+---
+
+## Base de datos — MongoDB (DB: `Codexar`)
+
+| Colección | Campos clave |
+|-----------|-------------|
+| `users` | email, password (bcrypt), username, is_onboarded, elo, wins, win_streak, languages, avatar, solved_exercises[] |
+| `exercises` | title, difficulty, category, description, test_cases[], stub |
+| `email_verifications` | email, code_hash (bcrypt), hashed_password, expires_at (TTL 5 min), created_at |
+
+> `email_verifications` tiene un índice TTL en `expires_at` — MongoDB borra los docs automáticamente al expirar.
+
+---
+
+## Sistema de ELO y rangos
 
 | Rango | ELO |
-|---|---|
-| Bronce I–III | 0 – 75 |
-| Plata I–III | 76 – 300 |
-| Oro I–III | 301 – 800 |
-| Platino I–III | 801 – 1300 |
-| Diamante I–III | 1301 – 2000 |
+|-------|-----|
+| Bronce I–III | 0–75 |
+| Plata I–III | 76–300 |
+| Oro I–III | 301–800 |
+| Platino I–III | 801–1300 |
+| Diamante I–III | 1301–2000 |
 | Campeón | 2001+ |
 
-Resultado de partida: **+25 ELO** al ganador, **-15 ELO** al perdedor.
+Resultado de partida: **+25 ELO** ganador · **-15 ELO** perdedor
 
 ---
 
-## 🤝 Contribuir
+## Notas importantes
 
-**¡Los forks y las Pull Requests están abiertos y son bienvenidos!** Ya sea un bug, una nueva feature o una mejora en la documentación — toda contribución se agradece.
-
-### Reglas de Ramas
-
-> ⚠️ **NUNCA hagas push directamente a `main`.** Todos los cambios deben ir a través de `develop`.
-
-```
-main      ← estable, solo producción
-develop   ← rama de desarrollo activo — apunta siempre aquí
-```
-
-### Convención de Commits
-
-Usa los siguientes prefijos para mantener el historial limpio:
-
-| Prefijo | Cuándo usarlo |
-|---|---|
-| `feat:` | Nueva funcionalidad o endpoint |
-| `fix:` | Corrección de un bug |
-| `refactor:` | Reestructuración de código sin cambios de comportamiento |
-| `docs:` | Cambios en el README u otra documentación |
-| `chore:` | Dependencias, configuración, herramientas |
-| `test:` | Añadir o actualizar tests |
-
-**Ejemplos:**
-```bash
-git commit -m "feat: añadir endpoint de leaderboard"
-git commit -m "fix: método HEAD devolvía 405 en el health check"
-git commit -m "docs: actualizar sección de variables de entorno"
-```
-
-### Flujo de Trabajo
-
-```bash
-# 1. Haz fork del repositorio y clónalo
-git clone https://github.com/tu-usuario/codexar-api.git
-
-# 2. Crea una rama desde develop — NUNCA desde main
-git checkout develop
-git checkout -b feat/nombre-de-tu-feature
-
-# 3. Haz tus cambios y confírmalos
-git add .
-git commit -m "feat: descripción de tu cambio"
-
-# 4. Haz push a tu fork
-git push origin feat/nombre-de-tu-feature
-
-# 5. Abre una Pull Request apuntando a la rama develop del repo principal
-```
-
-### Checklist antes de abrir una PR
-
-- [ ] La rama está basada en `develop`, no en `main`
-- [ ] Los commits siguen la convención de prefijos
-- [ ] No se ha subido ningún archivo `.env` ni credenciales
-- [ ] La API sigue devolviendo `{"status": "ok"}` en `/`
+- **Lifespan:** Se usa el patrón `@asynccontextmanager lifespan` de FastAPI moderno (el `add_event_handler` fue eliminado en Starlette 1.x).
+- **Email:** El sender verificado en Brevo es `onedrivexservice@gmail.com`. Cambiar con `BREVO_SENDER_EMAIL` en `.env`.
+- **Matchmaking:** El estado de partidas es **in-memory** (dict + list). Se resetea si el servidor reinicia — para producción habría que migrar a Redis.
+- **URL producción:** `https://codexarapi.onrender.com`
 
 ---
 
-## 📄 Licencia
+## Convención de ramas y commits
 
-MIT — libre de usar, forkear y modificar.
+```
+main     ← producción (no tocar directamente)
+develop  ← desarrollo activo
+```
+
+Prefijos de commits: `feat:` `fix:` `refactor:` `docs:` `chore:` `test:`
