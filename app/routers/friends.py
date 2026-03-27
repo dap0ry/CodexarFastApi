@@ -154,6 +154,28 @@ async def get_friends_lists(email: str = Depends(get_current_user)):
     }
 
 
+@router.delete("/api/friends/{target_username}")
+async def remove_friend(target_username: str, email: str = Depends(get_current_user)):
+    target_user = await database.db.users.find_one({"username": target_username})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    target_email = target_user["email"]
+
+    current_user = await database.db.users.find_one({"email": email})
+    if target_email not in current_user.get("friends", []):
+        raise HTTPException(status_code=400, detail="Este usuario no es tu amigo")
+
+    await database.db.users.update_one(
+        {"email": email},
+        {"$pull": {"friends": target_email}}
+    )
+    await database.db.users.update_one(
+        {"email": target_email},
+        {"$pull": {"friends": email}}
+    )
+    return {"status": "success", "message": "Amistad eliminada"}
+
+
 @router.get("/api/friends/activity")
 async def get_activity_feed(email: str = Depends(get_current_user)):
     # Currently no activity data
