@@ -17,7 +17,7 @@ Backend REST API para **Codexar** — plataforma de programación competitiva co
 - [x] Sistema de ELO y rangos (Bronce → Campeón)
 - [x] Ejercicios: listar, resolver, ejecución sandboxed en Python
 - [x] Matchmaking: cola ranked/unranked, long-poll 25s, batallas 1v1
-- [x] Amigos: solicitudes, aceptar/rechazar, búsqueda, activity feed
+- [x] Amigos: solicitudes, aceptar/rechazar, búsqueda, eliminar amigo, activity feed
 - [x] Entorno local: venv + .env configurado
 
 ### Pendiente / Por hacer
@@ -124,6 +124,7 @@ app/
 | POST | `/accept/{username}` | ✅ | Aceptar solicitud |
 | POST | `/reject/{username}` | ✅ | Rechazar solicitud |
 | POST | `/cancel/{username}` | ✅ | Cancelar solicitud enviada |
+| DELETE | `/{username}` | ✅ | Eliminar amigo |
 
 ### Matchmaking — `/api/matchmaking`
 | Método | Ruta | Auth | Descripción |
