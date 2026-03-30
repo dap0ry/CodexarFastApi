@@ -96,6 +96,7 @@ async def join_matchmaking(unranked: bool = False, email: str = Depends(get_curr
             "exercise": chosen_ex,
             "status": "ongoing",
             "winner": None,
+            "unranked": unranked,
             "event": asyncio.Event()
         }
 
@@ -215,7 +216,11 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
         loser_email = match["player2"]["email"] if is_p1 else match["player1"]["email"]
 
         # Simple ELO update logic (+25 won, -15 lost) and track real win/match stats
-        await database.db.users.update_one({"email": winner_email}, {"$inc": {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1}})
+        is_ranked = not match.get("unranked", False)
+        winner_inc = {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1}
+        if is_ranked:
+            winner_inc["ranked_wins"] = 1
+        await database.db.users.update_one({"email": winner_email}, {"$inc": winner_inc})
         await database.db.users.update_one({"email": loser_email}, {"$inc": {"elo": -15, "matches_played": 1}, "$set": {"win_streak": 0}})
 
         # Save Match to Database
