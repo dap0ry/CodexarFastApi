@@ -238,7 +238,8 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
         loser_email = match["player2"]["email"] if is_p1 else match["player1"]["email"]
 
         is_ranked = not match.get("unranked", False)
-        winner_inc = {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1}
+        coins_reward = 30 if is_ranked else 15
+        winner_inc = {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1, "coins": coins_reward}
         if is_ranked:
             winner_inc["ranked_wins"] = 1
         await database.db.users.update_one({"email": winner_email}, {"$inc": winner_inc})
