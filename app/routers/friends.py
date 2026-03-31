@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Depends
 
 import app.core.database as database
@@ -131,19 +133,33 @@ async def get_friends_lists(email: str = Depends(get_current_user)):
     sent_emails = current_user.get("friend_requests_sent", [])
     received_emails = current_user.get("friend_requests_received", [])
 
+    def relative_time(dt):
+        if dt is None:
+            return "Nunca conectado"
+        diff = (datetime.utcnow() - dt).total_seconds()
+        if diff < 120:      return "En línea"
+        if diff < 3600:     return f"hace {int(diff // 60)} min"
+        if diff < 86400:    return f"hace {int(diff // 3600)} h"
+        if diff < 604800:   return f"hace {int(diff // 86400)} días"
+        if diff < 2592000:  return f"hace {int(diff // 604800)} semanas"
+        return f"hace {int(diff // 2592000)} meses"
+
     async def get_users_info(email_list):
         if not email_list:
             return []
         cursor = database.db.users.find({"email": {"$in": email_list}})
         users_arr = []
         async for u in cursor:
+            last_seen = u.get("last_seen")
+            is_online = last_seen is not None and (datetime.utcnow() - last_seen).total_seconds() < 120
             users_arr.append({
                 "username": u.get("username"),
                 "avatar": u.get("avatar"),
                 "level": u.get("level"),
                 "languages": u.get("languages", []),
                 "description": u.get("description", ""),
-                "is_online": True  # Mock connection status
+                "is_online": is_online,
+                "last_seen_text": relative_time(last_seen)
             })
         return users_arr
 
