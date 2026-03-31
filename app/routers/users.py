@@ -346,3 +346,12 @@ async def get_story_chapters(email: str = Depends(get_current_user)):
         })
 
     return chapters
+
+
+@router.post("/api/user/heartbeat")
+async def heartbeat(email: str = Depends(get_current_user)):
+    await database.db.users.update_one(
+        {"email": email},
+        {"$set": {"last_seen": datetime.utcnow()}}
+    )
+    return {"ok": True}
