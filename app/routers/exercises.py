@@ -399,7 +399,6 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
                 exec(compile(user_code, "<solution>", "exec"), exec_globals)
             except Exception as e:
                 return {"correct": False, "message": f"Error de compilación: {str(e)}", "failed_case": i + 1}
-
             solve_fn = exec_globals.get("solve")
             if not solve_fn or not callable(solve_fn):
                 return {"correct": False, "message": "No se encontró la función `solve` en tu código.", "failed_case": 0}

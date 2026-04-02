@@ -57,7 +57,12 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "win_streak": user.get("win_streak", 0),
         "global_rank": global_rank,
         "wins": user.get("wins", 0),
-        "matches_played": user.get("matches_played", 0)
+        "matches_played": user.get("matches_played", 0),
+        "coins": user.get("coins", 0),
+        "equipped_frame": user.get("equipped_frame"),
+        "profile_background": user.get("profile_background"),
+        "purchased_items": user.get("purchased_items", []),
+        "solved_count": len(user.get("solved_exercises", [])),
     }
 
 
@@ -355,3 +360,78 @@ async def heartbeat(email: str = Depends(get_current_user)):
         {"$set": {"last_seen": datetime.utcnow()}}
     )
     return {"ok": True}
+
+
+@router.get("/api/user/profile/{username}")
+async def get_public_profile(username: str, email: str = Depends(get_current_user)):
+    user = await database.db.users.find_one({"username": username, "is_onboarded": True})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    elo = user.get("elo", 0)
+    higher_elo_count = await database.db.users.count_documents({"elo": {"$gt": elo}})
+    global_rank = higher_elo_count + 1
+
+    def get_rank_info(e):
+        if e <= 75:
+            sub = min(3, max(1, (e // 26) + 1))
+            return f"Bronce {['I', 'II', 'III'][sub-1]}", sub
+        elif e <= 300:
+            sub = min(3, max(1, ((e - 76) // 75) + 1))
+            return f"Plata {['I', 'II', 'III'][sub-1]}", 3 + sub
+        elif e <= 800:
+            sub = min(3, max(1, ((e - 301) // 167) + 1))
+            return f"Oro {['I', 'II', 'III'][sub-1]}", 6 + sub
+        elif e <= 1300:
+            sub = min(3, max(1, ((e - 801) // 167) + 1))
+            return f"Platino {['I', 'II', 'III'][sub-1]}", 9 + sub
+        elif e <= 2000:
+            sub = min(3, max(1, ((e - 1301) // 234) + 1))
+            return f"Diamante {['I', 'II', 'III'][sub-1]}", 12 + sub
+        else:
+            return "Campeón", 16
+
+    rank_name, tier = get_rank_info(elo)
+
+    return {
+        "username": user.get("username"),
+        "avatar": user.get("avatar"),
+        "description": user.get("description", ""),
+        "languages": user.get("languages", []),
+        "elo": elo,
+        "rank_name": rank_name,
+        "tier": tier,
+        "global_rank": global_rank,
+        "wins": user.get("wins", 0),
+        "matches_played": user.get("matches_played", 0),
+        "win_streak": user.get("win_streak", 0),
+        "solved_count": len(user.get("solved_exercises", [])),
+        "equipped_achievements": user.get("equipped_achievements", []),
+        "equipped_frame": user.get("equipped_frame"),
+        "profile_background": user.get("profile_background"),
+    }
+
+
+@router.post("/api/user/upload-background")
+async def upload_profile_background(
+    bg: UploadFile = File(...),
+    email: str = Depends(get_current_user)
+):
+    try:
+        safe_id = email.replace("@", "_at_").replace(".", "_") + "_bg"
+        result = cloudinary.uploader.upload(
+            bg.file,
+            folder="Codexar/ProfileBackgrounds",
+            public_id=safe_id,
+            overwrite=True,
+            resource_type="auto"
+        )
+        bg_url = result.get("secure_url")
+        await database.db.users.update_one(
+            {"email": email},
+            {"$set": {"profile_background": bg_url}}
+        )
+        return {"status": "success", "url": bg_url}
+    except Exception as e:
+        print("Background upload error:", str(e))
+        raise HTTPException(status_code=500, detail="Error subiendo el fondo de perfil")
