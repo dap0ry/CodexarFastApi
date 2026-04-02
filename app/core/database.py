@@ -13,38 +13,34 @@ async def startup_db_client():
     # TTL indexes: MongoDB auto-deletes expired docs
     await db.email_verifications.create_index("expires_at", expireAfterSeconds=0)
     await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
-    # Inject / update exercises without changing their _id values
+    # Sync exercises: upsert by title, remove stale titles not in seed
     from app.exercises_data import EXERCISES_SEED
-    existing_count = await db.exercises.count_documents({})
+    seed_titles = {ex["title"] for ex in EXERCISES_SEED}
 
-    if existing_count == 0:
-        # Fresh start: insert all
-        await db.exercises.insert_many(EXERCISES_SEED)
-        print(f"\u2705 Injected {len(EXERCISES_SEED)} offline mode exercises into MongoDB.")
-    else:
-        # Update existing exercises in-place by title (preserves _id so user progress is kept)
-        updated = 0
-        inserted = 0
-        sample = await db.exercises.find_one({})
-        if sample and "test_cases" not in sample:
-            # Missing test_cases on all docs: update each by title
-            for seed_ex in EXERCISES_SEED:
-                result = await db.exercises.update_one(
-                    {"title": seed_ex["title"]},
-                    {"$set": {
-                        "description": seed_ex.get("description", ""),
-                        "test_cases": seed_ex.get("test_cases", []),
-                        "stub": seed_ex.get("stub", {})
-                    }},
-                    upsert=True
-                )
-                if result.upserted_id:
-                    inserted += 1
-                else:
-                    updated += 1
-            print(f"\u2705 Updated {updated} exercises with test cases, inserted {inserted} new.")
+    # Remove exercises whose title is no longer in the seed
+    del_result = await db.exercises.delete_many({"title": {"$nin": list(seed_titles)}})
+    if del_result.deleted_count:
+        print(f"🗑  Removed {del_result.deleted_count} stale exercises.")
+
+    # Upsert every seed exercise by title (preserves _id and solver stats for existing ones)
+    updated = inserted = 0
+    for seed_ex in EXERCISES_SEED:
+        result = await db.exercises.update_one(
+            {"title": seed_ex["title"]},
+            {"$set": {
+                "description":  seed_ex.get("description", ""),
+                "difficulty":   seed_ex.get("difficulty", "Normal"),
+                "category":     seed_ex.get("category", ""),
+                "test_cases":   seed_ex.get("test_cases", []),
+                "stub":         seed_ex.get("stub", {}),
+            }},
+            upsert=True
+        )
+        if result.upserted_id:
+            inserted += 1
         else:
-            print(f"\u2705 Exercises collection OK ({existing_count} exercises).")
+            updated += 1
+    print(f"✅ Exercises synced: {inserted} inserted, {updated} updated.")
 
 
 async def shutdown_db_client():
