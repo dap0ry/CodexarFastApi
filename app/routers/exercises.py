@@ -387,32 +387,6 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
     if not test_cases:
         raise HTTPException(status_code=400, detail="Este ejercicio no tiene casos de prueba configurados")
 
-<<<<<<< Updated upstream
-    # Only Python execution supported for now
-    if body.language != "Python":
-        if body.save:
-            user = await database.db.users.find_one({"email": email})
-            solved_ids = user.get("solved_exercises", []) if user else []
-            if exercise_id not in solved_ids:
-                difficulty = ex.get("difficulty", "Normal")
-                elo_gain = 1 if difficulty == "Fácil" else (5 if difficulty == "Difícil" else 2)
-
-                await database.db.users.update_one(
-                    {"email": email},
-                    {
-                        "$addToSet": {"solved_exercises": exercise_id},
-                        "$inc": {"elo": elo_gain}
-                    }
-                )
-                # Record solver in exercise
-                ex_has_first = ex.get("first_solver_email")
-                update_ex = {"$addToSet": {"solvers": email}}
-                if not ex_has_first:
-                    update_ex["$set"] = {"first_solver_email": email}
-                await database.db.exercises.update_one({"_id": oid}, update_ex)
-            return {"correct": True, "message": "¡Ejercicio guardado correctamente!"}
-        return {"correct": True, "message": f"Verificación manual para {body.language}. Haz clic en Guardar si tu solución es correcta."}
-=======
     # ── Python: run locally with exec() ──
     if body.language == "Python":
         user_code = body.code
@@ -425,7 +399,6 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
                 exec(compile(user_code, "<solution>", "exec"), exec_globals)
             except Exception as e:
                 return {"correct": False, "message": f"Error de compilación: {str(e)}", "failed_case": i + 1}
->>>>>>> Stashed changes
 
             solve_fn = exec_globals.get("solve")
             if not solve_fn or not callable(solve_fn):
