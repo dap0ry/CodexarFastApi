@@ -15,6 +15,10 @@ BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "noreply@codexar.dev")
 BREVO_SENDER_NAME = "Codexar"
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
 
+# Judge0 code execution — free public instance (no key needed for dev)
+# For production: set JUDGE0_KEY to your RapidAPI key
+JUDGE0_KEY = os.getenv("JUDGE0_KEY", "")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 DB_NAME = "Codexar"

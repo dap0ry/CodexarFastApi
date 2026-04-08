@@ -1,18 +1,38 @@
 import ast
-import sys
-import io
 import httpx
 
 from fastapi import APIRouter, HTTPException, Depends
 
 import app.core.database as database
 from app.core.security import get_current_user
+from app.core.compare import compare_result, compare_config_from_dict
+from app.core.config import JUDGE0_KEY
 from app.models.exercise import SolveRequest
 
 router = APIRouter()
 
-PISTON_URL = "https://emkc.org/api/v2/piston/execute"
-PISTON_LANG = {"C++": "c++", "Java": "java", "Go": "go", "C#": "csharp"}
+# ─────────────────────────────────────────────
+#  Judge0 config
+# ─────────────────────────────────────────────
+# Free public CE instance (no key, ~5 req/s limit) — fine for dev/small scale.
+# For production: add JUDGE0_KEY to .env (RapidAPI free tier = 50 req/day)
+_JUDGE0_PUBLIC_URL  = "https://ce.judge0.com/submissions"
+_JUDGE0_RAPID_URL   = "https://judge0-ce.p.rapidapi.com/submissions"
+
+JUDGE0_URL = _JUDGE0_RAPID_URL if JUDGE0_KEY else _JUDGE0_PUBLIC_URL
+JUDGE0_HEADERS: dict = (
+    {"X-RapidAPI-Host": "judge0-ce.p.rapidapi.com", "X-RapidAPI-Key": JUDGE0_KEY}
+    if JUDGE0_KEY else {}
+)
+
+# Judge0 CE language IDs
+JUDGE0_LANG = {
+    "Python": 71,   # Python 3.8.1
+    "C++":    54,   # GCC 9.2.0
+    "Java":   62,   # OpenJDK 13.0.1
+    "Go":     60,   # Go 1.13.5
+    "C#":     51,   # Mono 6.6.0.161
+}
 
 
 # ─────────────────────────────────────────────
@@ -36,6 +56,11 @@ def _to_java(val):
     if isinstance(val, list):
         inner = ", ".join(_to_java(x) for x in val)
         if not val: return "new int[]{}"
+        if isinstance(val[0], list):
+            # 2D array: determine element type from first non-empty inner list
+            first_inner = next((x for x in val if x), None)
+            if first_inner and isinstance(first_inner[0], str): return f"new String[][]{{{inner}}}"
+            return f"new int[][]{{{inner}}}"
         if isinstance(val[0], int): return f"new int[]{{{inner}}}"
         if isinstance(val[0], str): return f"new String[]{{{inner}}}"
         return f"new Object[]{{{inner}}}"
@@ -49,6 +74,10 @@ def _to_go(val):
     if isinstance(val, list):
         inner = ", ".join(_to_go(x) for x in val)
         if not val: return "[]int{}"
+        if isinstance(val[0], list):
+            first_inner = next((x for x in val if x), None)
+            if first_inner and isinstance(first_inner[0], str): return f"[][]string{{{inner}}}"
+            return f"[][]int{{{inner}}}"
         if isinstance(val[0], int): return f"[]int{{{inner}}}"
         if isinstance(val[0], str): return f"[]string{{{inner}}}"
         return f"[]interface{{}}{{{inner}}}"
@@ -62,17 +91,50 @@ def _to_cs(val):
     if isinstance(val, list):
         inner = ", ".join(_to_cs(x) for x in val)
         if not val: return "new int[]{}"
+        if isinstance(val[0], list):
+            first_inner = next((x for x in val if x), None)
+            if first_inner and isinstance(first_inner[0], str): return f"new string[][]{{{inner}}}"
+            return f"new int[][]{{{inner}}}"
         if isinstance(val[0], int): return f"new int[]{{{inner}}}"
         if isinstance(val[0], str): return f"new string[]{{{inner}}}"
         return f"new object[]{{{inner}}}"
     return str(val)
 
 
+def _canonical(val) -> str:
+    """Convert any Python value to a language-agnostic canonical string for comparison."""
+    if val is None:                return "None"
+    if isinstance(val, bool):      return "True" if val else "False"
+    if isinstance(val, float):
+        # Preserve .0 for whole floats (e.g. median 2.0), trim trailing zeros otherwise
+        if val == int(val):        return str(int(val)) + ".0"
+        return str(val)
+    if isinstance(val, int):       return str(val)
+    if isinstance(val, str):       return val          # plain content, no quotes
+    if isinstance(val, (list, tuple)):
+        return "[" + ",".join(_canonical(x) for x in val) + "]"
+    return str(val)
+
+
 def _normalize(s: str) -> str:
+    """
+    Normalize output strings for robust comparison.
+    Tries to parse the string as a Python literal and canonicalize it.
+    Falls back to stripping spaces if parsing fails.
+    """
     s = s.strip()
-    if s.lower() == "true": return "True"
+    # Fast path for booleans (some languages print lowercase)
+    if s.lower() == "true":  return "True"
     if s.lower() == "false": return "False"
-    return s.replace(" ", "")
+    # None / null variants
+    if s in ("None", "null", "nil", "__NONE__"): return "None"
+    # Try to parse as Python literal → canonical form
+    try:
+        val = ast.literal_eval(s)
+        return _canonical(val)
+    except Exception:
+        # Not a parseable literal: just strip spaces (works for plain ints/strings)
+        return s.replace(" ", "")
 
 
 # ─────────────────────────────────────────────
@@ -115,6 +177,14 @@ string pyRepr<vector<string>>(vector<string> v) {{
     }}
     return s + "]";
 }}
+template<>
+string pyRepr<double>(double v) {{
+    ostringstream ss;
+    ss << v;
+    string s = ss.str();
+    if (s.find('.') == string::npos) s += ".0";
+    return s;
+}}
 
 int main() {{
 {calls_str}
@@ -136,6 +206,10 @@ public class Main {{
 
     static String pyRepr(int v) {{ return Integer.toString(v); }}
     static String pyRepr(long v) {{ return Long.toString(v); }}
+    static String pyRepr(double v) {{
+        if (v == (long)v) return Long.toString((long)v) + ".0";
+        return Double.toString(v);
+    }}
     static String pyRepr(boolean v) {{ return v ? "True" : "False"; }}
     static String pyRepr(String v) {{ return v; }}
     static String pyRepr(int[] v) {{
@@ -189,6 +263,9 @@ func pyRepr(v interface{{}}) string {{
 \t\treturn "[" + strings.Join(parts, ", ") + "]"
 \tcase []string:
 \t\treturn "[" + strings.Join(val, ", ") + "]"
+\tcase float64:
+\t\tif val == float64(int(val)) {{ return strconv.Itoa(int(val)) + ".0" }}
+\t\treturn strconv.FormatFloat(val, 'f', -1, 64)
 \tdefault:
 \t\treturn fmt.Sprintf("%v", v)
 \t}}
@@ -216,6 +293,7 @@ class Solution {{
 
     static string PyRepr(int v) => v.ToString();
     static string PyRepr(long v) => v.ToString();
+    static string PyRepr(double v) => (v == (long)v) ? ((long)v).ToString() + ".0" : v.ToString();
     static string PyRepr(bool v) => v ? "True" : "False";
     static string PyRepr(string v) => v;
     static string PyRepr(int[] v) => "[" + string.Join(", ", v) + "]";
@@ -228,71 +306,180 @@ class Solution {{
 """
 
 
-BUILDERS = {"C++": _build_cpp, "Java": _build_java, "Go": _build_go, "C#": _build_cs}
-FILE_NAMES = {"C++": "main.cpp", "Java": "Main.java", "Go": "main.go", "C#": "solution.cs"}
+def _build_python(user_code: str, all_args: list) -> str:
+    """
+    Each test case is wrapped in try/except so a crash on case N
+    doesn't silently eat the output for cases N+1, N+2, ...
+    Output format per case:
+    - Normal return  → str(value)   e.g. "6" / "True" / "[1,2,3]"
+    - None return    → "__NONE__"   (user forgot `return`)
+    - Exception      → "__ERR__:<msg>"
+    flush=True ensures output is captured even in Piston's piped environment.
+    """
+    calls = []
+    for args in all_args:
+        py_args = ", ".join(repr(a) for a in args)
+        calls.append(
+            f"    try:\n"
+            f"        _r = solve({py_args})\n"
+            f"        print('__NONE__' if _r is None else str(_r), flush=True)\n"
+            f"    except Exception as _e:\n"
+            f"        print(f'__ERR__:{{_e}}', flush=True)\n"
+        )
+    calls_str = "\n".join(calls)
+    return f"import sys\nsys.stdout.reconfigure(line_buffering=True)\n\n{user_code}\n\nif __name__ == '__main__':\n{calls_str}\n"
+
+
+BUILDERS = {"Python": _build_python, "C++": _build_cpp, "Java": _build_java, "Go": _build_go, "C#": _build_cs}
 
 
 # ─────────────────────────────────────────────
-#  Piston runner
+#  Judge0 runner
 # ─────────────────────────────────────────────
 
-async def _run_with_piston(language: str, user_code: str, test_cases: list) -> dict:
-    # Parse all test inputs as Python literals first
+async def _run_with_judge0(language: str, user_code: str, test_cases: list, compare_cfg=None) -> dict:
+    # ── 1. Parse all test inputs ───────────────────────────────────────────
     all_args = []
     for i, tc in enumerate(test_cases):
         try:
-            raw = f"({tc['input']},)"
+            raw    = f"({tc['input']},)"
             parsed = ast.literal_eval(raw)
             if not isinstance(parsed, tuple):
                 parsed = (parsed,)
             all_args.append(parsed)
         except Exception as e:
-            return {"correct": False, "message": f"Error en caso {i+1}: input inválido ({e})", "failed_case": i+1}
+            return {
+                "correct": False,
+                "message": f"Input inválido en caso {i+1}: {e}",
+                "failed_case": i + 1,
+                "input": tc["input"],
+                "expected": str(tc["expected_output"]),
+                "got": "(input no parseable)",
+            }
 
-    # Build combined program
+    # ── 2. Build full program ──────────────────────────────────────────────
     try:
         full_code = BUILDERS[language](user_code, all_args)
     except Exception as e:
         return {"correct": False, "message": f"Error generando programa: {e}", "failed_case": 0}
 
-    # Call Piston
+    # ── 3. Call Judge0 API ─────────────────────────────────────────────────
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.post(PISTON_URL, json={
-                "language": PISTON_LANG[language],
-                "version": "*",
-                "files": [{"name": FILE_NAMES[language], "content": full_code}]
-            })
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{JUDGE0_URL}?base64_encoded=false&wait=true",
+                json={
+                    "source_code": full_code,
+                    "language_id": JUDGE0_LANG[language],
+                    "stdin":       "",
+                },
+                headers={**JUDGE0_HEADERS, "Content-Type": "application/json"},
+            )
         data = resp.json()
-    except Exception:
-        return {"correct": False, "message": "El ejecutor de código no está disponible. Inténtalo de nuevo."}
+    except Exception as e:
+        return {"correct": False, "message": f"El ejecutor de código no está disponible. Inténtalo de nuevo. ({e})"}
 
-    # Compilation error
-    compile_info = data.get("compile", {})
-    if compile_info and compile_info.get("code", 0) != 0:
-        err = (compile_info.get("stderr") or compile_info.get("output") or "").strip()[:400]
+    # ── 4. Judge0 status handling ──────────────────────────────────────────
+    status    = data.get("status", {})
+    status_id = status.get("id", 0)
+
+    stdout          = data.get("stdout") or ""
+    stderr          = data.get("stderr") or ""
+    compile_output  = data.get("compile_output") or ""
+
+    # Status 6 = Compilation Error
+    if status_id == 6:
+        err = compile_output.strip()[:600] or stderr.strip()[:600]
         return {"correct": False, "message": f"Error de compilación:\n{err}", "failed_case": 0}
 
-    # Runtime error
-    run_info = data.get("run", {})
-    if run_info.get("code", 0) != 0:
-        err = (run_info.get("stderr") or run_info.get("output") or "").strip()[:400]
-        return {"correct": False, "message": f"Error de ejecución:\n{err}", "failed_case": 0}
+    # Status 5 = Time Limit Exceeded
+    if status_id == 5:
+        return {"correct": False, "message": "Tiempo límite de ejecución excedido"}
 
-    # Compare line by line
-    lines = [l.strip() for l in run_info.get("stdout", "").split("\n") if l.strip()]
+    # Status 7–12 = Runtime errors (SIGSEGV, SIGABRT, NZEC, etc.)
+    if 7 <= status_id <= 12:
+        err = (stderr or compile_output).strip()[:600]
+        desc = status.get("description", "Runtime Error")
+        return {
+            "correct":     False,
+            "message":     f"{desc}:\n{err}" if err else desc,
+            "failed_case": 1,
+            "input":       test_cases[0]["input"] if test_cases else "",
+            "expected":    str(test_cases[0]["expected_output"]) if test_cases else "",
+            "got":         "(sin salida)",
+        }
+
+    # ── 5. Parse stdout into one line per test case ────────────────────────
+    lines = [l.strip() for l in stdout.split("\n") if l.strip()]
+
+    # ── 6. Compare case by case ────────────────────────────────────────────
     for i, tc in enumerate(test_cases):
-        expected = str(tc["expected_output"]).strip()
-        actual = lines[i] if i < len(lines) else ""
-        if _normalize(actual) != _normalize(expected):
+        expected_raw = str(tc["expected_output"]).strip()
+        actual_raw   = lines[i] if i < len(lines) else ""
+
+        # ── 6a. Python harness error markers ──────────────────────────────
+        if actual_raw.startswith("__ERR__:"):
+            err_msg = actual_raw[8:]
             return {
-                "correct": False,
-                "message": f"Caso {i+1} fallido",
-                "failed_case": i+1,
-                "input": tc["input"],
-                "expected": expected,
-                "got": actual
+                "correct":     False,
+                "message":     f"Excepción en caso {i+1}: {err_msg}",
+                "failed_case": i + 1,
+                "input":       tc["input"],
+                "expected":    expected_raw,
+                "got":         f"Error: {err_msg}",
             }
+
+        # ── 6b. Missing return (Python __NONE__ marker) ────────────────────
+        if actual_raw == "__NONE__":
+            return {
+                "correct":     False,
+                "message":     f"Caso {i+1}: la función no devuelve nada (¿olvidaste return?)",
+                "failed_case": i + 1,
+                "input":       tc["input"],
+                "expected":    expected_raw,
+                "got":         "None (sin return)",
+            }
+
+        # ── 6c. No output for this case ────────────────────────────────────
+        if not actual_raw:
+            err_hint = stderr.strip()[:300] if stderr.strip() else "el programa no produjo salida"
+            return {
+                "correct":     False,
+                "message":     f"Error de ejecución en caso {i+1}: {err_hint}",
+                "failed_case": i + 1,
+                "input":       tc["input"],
+                "expected":    expected_raw,
+                "got":         "(sin salida)",
+            }
+
+        # ── 6d. Deep comparison via compare.py ────────────────────────────
+        ok, got_display, exp_display = compare_result(
+            got_raw      = actual_raw,
+            expected_raw = expected_raw,
+            input_args   = all_args[i],
+            config       = compare_cfg,
+        )
+        if not ok:
+            return {
+                "correct":     False,
+                "message":     f"Caso {i+1} fallido",
+                "failed_case": i + 1,
+                "input":       tc["input"],
+                "expected":    exp_display,
+                "got":         got_display,
+            }
+
+    # ── 7. All passed ──────────────────────────────────────────────────────
+    if not lines and test_cases:
+        err_hint = (stderr or compile_output).strip()[:300] or "el programa no produjo salida"
+        return {
+            "correct":     False,
+            "message":     f"Error de ejecución: {err_hint}",
+            "failed_case": 1,
+            "input":       test_cases[0]["input"],
+            "expected":    str(test_cases[0]["expected_output"]),
+            "got":         "(sin salida)",
+        }
 
     return {"correct": True, "message": "¡Todos los casos de prueba superados!"}
 
@@ -352,6 +539,23 @@ async def get_solved_exercises(email: str = Depends(get_current_user)):
     return user.get("solved_exercises", [])
 
 
+@router.get("/api/exercises/random")
+async def get_random_exercise(email: str = Depends(get_current_user)):
+    import random as _random
+    exercises = []
+    async for ex in database.db.exercises.find():
+        exercises.append(ex)
+    if not exercises:
+        raise HTTPException(status_code=404, detail="No hay ejercicios disponibles")
+    ex = dict(_random.choice(exercises))
+    user = await database.db.users.find_one({"email": email})
+    solved_ids = set(user.get("solved_exercises", [])) if user else set()
+    ex["id"] = str(ex["_id"])
+    del ex["_id"]
+    ex["solved"] = ex["id"] in solved_ids
+    return ex
+
+
 @router.get("/api/exercises/{exercise_id}")
 async def get_exercise(exercise_id: str, email: str = Depends(get_current_user)):
     from bson import ObjectId
@@ -387,52 +591,17 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
     if not test_cases:
         raise HTTPException(status_code=400, detail="Este ejercicio no tiene casos de prueba configurados")
 
-    # ── Python: run locally with exec() ──
-    if body.language == "Python":
-        user_code = body.code
-        for i, tc in enumerate(test_cases):
-            test_input_str = tc["input"]
-            expected_str = str(tc["expected_output"]).strip()
+    # ── All languages: run via Judge0 API (no exec() on server) ──
+    if body.language not in JUDGE0_LANG:
+        return {"correct": False, "message": f"Lenguaje no soportado: {body.language}"}
 
-            exec_globals = {}
-            try:
-                exec(compile(user_code, "<solution>", "exec"), exec_globals)
-            except Exception as e:
-                return {"correct": False, "message": f"Error de compilación: {str(e)}", "failed_case": i + 1}
-            solve_fn = exec_globals.get("solve")
-            if not solve_fn or not callable(solve_fn):
-                return {"correct": False, "message": "No se encontró la función `solve` en tu código.", "failed_case": 0}
+    # Build CompareConfig from exercise data (optional field, defaults to standard comparison)
+    compare_cfg = compare_config_from_dict(ex.get("compare_config"))
 
-            try:
-                args_raw = f"({test_input_str},)"
-                parsed_args = ast.literal_eval(args_raw)
-                if not isinstance(parsed_args, tuple):
-                    parsed_args = (parsed_args,)
-            except Exception as e:
-                return {"correct": False, "message": f"Error procesando caso {i+1}: {str(e)}", "failed_case": i + 1}
-
-            try:
-                result = solve_fn(*parsed_args)
-            except Exception as e:
-                return {"correct": False, "message": f"Error en caso {i+1}: {str(e)}", "failed_case": i + 1, "input": test_input_str, "expected": expected_str}
-
-            actual_str = str(result).strip()
-            if actual_str.lower() == "true": actual_str = "True"
-            if actual_str.lower() == "false": actual_str = "False"
-            if actual_str.replace(" ", "") != expected_str.replace(" ", ""):
-                return {"correct": False, "message": f"Caso {i+1} fallido", "failed_case": i + 1, "input": test_input_str, "expected": expected_str, "got": actual_str}
-
-        result_ok = True
-
-    # ── Other languages: run via Piston API ──
-    else:
-        if body.language not in PISTON_LANG:
-            return {"correct": False, "message": f"Lenguaje no soportado: {body.language}"}
-
-        piston_result = await _run_with_piston(body.language, body.code, test_cases)
-        if not piston_result["correct"]:
-            return piston_result
-        result_ok = True
+    piston_result = await _run_with_judge0(body.language, body.code, test_cases, compare_cfg)
+    if not piston_result["correct"]:
+        return piston_result
+    result_ok = True
 
     # ── All tests passed: optionally save ──
     if result_ok and body.save:
@@ -445,7 +614,10 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
 
             await database.db.users.update_one(
                 {"email": email},
-                {"$addToSet": {"solved_exercises": exercise_id}, "$inc": {"elo": elo_gain, "coins": coins_gain}}
+                {
+                    "$addToSet": {"solved_exercises": exercise_id},
+                    "$inc": {"elo": elo_gain, "coins": coins_gain, f"lang_stats.{body.language}": 1}
+                }
             )
             ex_fresh = await database.db.exercises.find_one({"_id": oid})
             has_first = ex_fresh.get("first_solver_email") if ex_fresh else None

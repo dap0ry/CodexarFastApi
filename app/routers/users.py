@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Optional, List
 
@@ -8,6 +9,29 @@ import app.core.database as database
 from app.core.security import get_current_user, verify_password, get_password_hash
 
 router = APIRouter()
+
+_USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,20}$')
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+_MAX_UPLOAD_BYTES = 1 * 1024 * 1024  # 1 MB
+
+
+def _validate_username(username: str):
+    if not _USERNAME_RE.match(username):
+        raise HTTPException(
+            status_code=400,
+            detail="El username solo puede contener letras, números, guiones y guiones bajos (3-20 caracteres)."
+        )
+
+
+async def _validate_image(pfp: UploadFile):
+    if pfp.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
+    contents = await pfp.read()
+    if len(contents) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="La imagen no puede superar los 5 MB.")
+    # Reset file pointer for subsequent read by cloudinary
+    import io
+    pfp.file = io.BytesIO(contents)
 
 
 @router.get("/api/user/me")
@@ -26,20 +50,26 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         if e <= 75:
             sub = min(3, max(1, (e // 26) + 1))
             return f"Bronce {['I', 'II', 'III'][sub-1]}", sub
-        elif e <= 300:
+        elif e <= 200:
             sub = min(3, max(1, ((e - 76) // 75) + 1))
             return f"Plata {['I', 'II', 'III'][sub-1]}", 3 + sub
-        elif e <= 800:
+        elif e <= 500:
             sub = min(3, max(1, ((e - 301) // 167) + 1))
             return f"Oro {['I', 'II', 'III'][sub-1]}", 6 + sub
-        elif e <= 1300:
+        elif e <= 900:
             sub = min(3, max(1, ((e - 801) // 167) + 1))
             return f"Platino {['I', 'II', 'III'][sub-1]}", 9 + sub
-        elif e <= 2000:
+        elif e <= 1400:
             sub = min(3, max(1, ((e - 1301) // 234) + 1))
             return f"Diamante {['I', 'II', 'III'][sub-1]}", 12 + sub
+        elif e <= 2000:
+            sub = min(3, max(1, ((e - 1301) // 234) + 1))
+            return f"Elite {['I', 'II', 'III'][sub-1]}", 12 + sub
+        elif e <= 3000:
+            sub = min(3, max(1, ((e - 1301) // 234) + 1))
+            return f"Campeon {['I', 'II', 'III'][sub-1]}", 12 + sub
         else:
-            return "Campeón", 16
+            return "Voidborn", 16
 
     rank_name, tier = get_rank_info(elo)
 
@@ -63,6 +93,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "profile_background": user.get("profile_background"),
         "purchased_items": user.get("purchased_items", []),
         "solved_count": len(user.get("solved_exercises", [])),
+        "lang_stats": user.get("lang_stats", {}),
     }
 
 
@@ -81,6 +112,8 @@ async def onboard_user(
     pfp: UploadFile = File(None),
     email: str = Depends(get_current_user)
 ):
+    _validate_username(username)
+
     # Check if username exists and doesn't belong to this exact user
     existing = await database.db.users.find_one({"username": username})
     if existing and existing.get("email") != email:
@@ -88,6 +121,7 @@ async def onboard_user(
 
     avatar_url = None
     if pfp and pfp.filename:
+        await _validate_image(pfp)
         try:
             # Clean string directly substituting @ and . to make it Cloudinary safe url
             safe_id = email.replace("@", "_at_").replace(".", "_")
@@ -157,6 +191,7 @@ async def update_user_profile(
 
     # 1. Alias Validation
     if username is not None and username != current_user.get("username"):
+        _validate_username(username)
         existing_username = await database.db.users.find_one({"username": username})
         if existing_username:
             raise HTTPException(status_code=400, detail="Este nombre de usuario ya está en uso.")
@@ -184,6 +219,7 @@ async def update_user_profile(
 
     # 5. Network Matrix Cloudinary Uplink
     if pfp and pfp.filename:
+        await _validate_image(pfp)
         try:
             safe_id = email.replace("@", "_at_").replace(".", "_")
             result = cloudinary.uploader.upload(
@@ -263,11 +299,13 @@ async def get_leaderboard(email: str = Depends(get_current_user)):
 
         # Calculate rank name for leaderboard
         if elo <= 75: sub = min(3, max(1, (elo // 26) + 1)); rank_name = f"Bronce {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 300: sub = min(3, max(1, ((elo - 76) // 75) + 1)); rank_name = f"Plata {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 800: sub = min(3, max(1, ((elo - 301) // 167) + 1)); rank_name = f"Oro {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 1300: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Platino {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 2000: sub = min(3, max(1, ((elo - 1301) // 234) + 1)); rank_name = f"Diamante {['I', 'II', 'III'][sub-1]}"
-        else: rank_name = "Campeón"
+        elif elo <= 200: sub = min(3, max(1, ((elo - 76) // 75) + 1)); rank_name = f"Plata {['I', 'II', 'III'][sub-1]}"
+        elif elo <= 500: sub = min(3, max(1, ((elo - 301) // 167) + 1)); rank_name = f"Oro {['I', 'II', 'III'][sub-1]}"
+        elif elo <= 900: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Platino {['I', 'II', 'III'][sub-1]}"
+        elif elo <= 1400: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Diamante {['I', 'II', 'III'][sub-1]}"
+        elif elo <= 2000: sub = min(3, max(1, ((elo - 1301) // 234) + 1)); rank_name = f"Elite {['I', 'II', 'III'][sub-1]}"
+        elif elo <= 3000: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Campeon {['I', 'II', 'III'][sub-1]}"
+        else: rank_name = "Voidborn"
 
         users_list.append({
             "username": u.get("username", "?"),
@@ -280,77 +318,6 @@ async def get_leaderboard(email: str = Depends(get_current_user)):
         })
 
     return users_list
-
-
-@router.get("/api/story/chapters")
-async def get_story_chapters(email: str = Depends(get_current_user)):
-    user = await database.db.users.find_one({"email": email})
-    solved_ids = set(user.get("solved_exercises", [])) if user else set()
-
-    # Fetch all exercises to get their true ObjectIds
-    cursor = database.db.exercises.find({}, {"title": 1, "difficulty": 1, "category": 1})
-    db_exercises = {}
-    async for ex in cursor:
-        db_exercises[ex["title"]] = {
-            "id": str(ex["_id"]),
-            "title": ex["title"],
-            "difficulty": ex.get("difficulty", "Normal"),
-            "category": ex.get("category", "")
-        }
-
-    from app.exercises_data import EXERCISES_SEED
-
-    chapter_meta = [
-        {"title": "Capítulo 1: Fundamentos de Arrays", "desc": "Estructuras contiguas en memoria."},
-        {"title": "Capítulo 2: Algoritmos con Arrays", "desc": "Problemas de nivel competitivo."},
-        {"title": "Capítulo 3: Tratamiento de Strings", "desc": "Manipulación de cadenas y texto."},
-        {"title": "Capítulo 4: Strings Avanzados", "desc": "Algoritmos complejos sobre cadenas."},
-        {"title": "Capítulo 5: Matemáticas Básicas", "desc": "Fibonacci, Primos y Factoriales."},
-        {"title": "Capítulo 6: Teoría de Números", "desc": "Rompecabezas matemáticos extremos."}
-    ]
-
-    chapters = []
-    chunk_size = 5
-    previous_unlocked = True  # Chapter 1 is always unlocked
-
-    for i in range(6):
-        start_idx = i * chunk_size
-        chunk = EXERCISES_SEED[start_idx: start_idx + chunk_size]
-
-        ex_list = []
-        solved_count = 0
-
-        for seed_ex in chunk:
-            # Match with DB data to get real ID
-            db_ex = db_exercises.get(seed_ex["title"])
-            if not db_ex: continue
-
-            is_solved = db_ex["id"] in solved_ids
-            if is_solved:
-                solved_count += 1
-
-            ex_list.append({
-                "id": db_ex["id"],
-                "title": db_ex["title"],
-                "difficulty": db_ex["difficulty"],
-                "solved": is_solved
-            })
-
-        is_unlocked = previous_unlocked
-        # Next chapter is unlocked only if this chapter has 5/5
-        previous_unlocked = (solved_count == chunk_size)
-
-        chapters.append({
-            "id": i + 1,
-            "title": chapter_meta[i]["title"],
-            "description": chapter_meta[i]["desc"],
-            "is_unlocked": is_unlocked,
-            "progress": solved_count,
-            "total": chunk_size,
-            "exercises": ex_list
-        })
-
-    return chapters
 
 
 @router.post("/api/user/heartbeat")
@@ -376,22 +343,69 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         if e <= 75:
             sub = min(3, max(1, (e // 26) + 1))
             return f"Bronce {['I', 'II', 'III'][sub-1]}", sub
-        elif e <= 300:
+        elif e <= 200:
             sub = min(3, max(1, ((e - 76) // 75) + 1))
             return f"Plata {['I', 'II', 'III'][sub-1]}", 3 + sub
-        elif e <= 800:
+        elif e <= 500:
             sub = min(3, max(1, ((e - 301) // 167) + 1))
             return f"Oro {['I', 'II', 'III'][sub-1]}", 6 + sub
-        elif e <= 1300:
+        elif e <= 900:
             sub = min(3, max(1, ((e - 801) // 167) + 1))
             return f"Platino {['I', 'II', 'III'][sub-1]}", 9 + sub
-        elif e <= 2000:
+        elif e <= 1400:
             sub = min(3, max(1, ((e - 1301) // 234) + 1))
             return f"Diamante {['I', 'II', 'III'][sub-1]}", 12 + sub
+        elif e <= 2000:
+            sub = min(3, max(1, ((e - 1301) // 234) + 1))
+            return f"Elite {['I', 'II', 'III'][sub-1]}", 12 + sub
+        elif e <= 3000:
+            sub = min(3, max(1, ((e - 1301) // 234) + 1))
+            return f"Campeon {['I', 'II', 'III'][sub-1]}", 12 + sub
         else:
-            return "Campeón", 16
+            return "Voidborn", 16
 
     rank_name, tier = get_rank_info(elo)
+
+    # Max ELO and max rank
+    max_elo = user.get("max_elo", elo)
+    max_rank_name, _ = get_rank_info(max_elo)
+
+    # Win rate
+    wins = user.get("wins", 0)
+    matches_played = user.get("matches_played", 0)
+    win_rate = round(wins / matches_played * 100) if matches_played > 0 else 0
+
+    # Bot stats
+    bot_wins = user.get("bot_wins", 0)
+    bot_matches = user.get("bot_matches", 0)
+    bot_winrate = round(bot_wins / bot_matches * 100) if bot_matches > 0 else 0
+
+    # Solved by difficulty
+    from bson import ObjectId
+    DIFF_ORDER = ["Fácil", "Normal", "Difícil", "Muy Difícil", "Insane", "Abyssal"]
+    solved_by_diff = {d: 0 for d in DIFF_ORDER}
+    hardest_exercise = None
+    solved_ids = user.get("solved_exercises", [])
+    if solved_ids:
+        oids = [ObjectId(i) for i in solved_ids if ObjectId.is_valid(i)]
+        async for ex in database.db.exercises.find({"_id": {"$in": oids}}, {"title": 1, "difficulty": 1}):
+            d = ex.get("difficulty", "Normal")
+            if d in solved_by_diff:
+                solved_by_diff[d] += 1
+            if hardest_exercise is None or DIFF_ORDER.index(d) > DIFF_ORDER.index(hardest_exercise["difficulty"]):
+                hardest_exercise = {"title": ex["title"], "difficulty": d}
+
+    # Equipped achievements as full objects
+    from app.routers.achievements import _CATALOG_MAP
+    equipped_keys = user.get("equipped_achievements", [])
+    equipped_details = [_CATALOG_MAP[k] for k in equipped_keys if k in _CATALOG_MAP]
+
+    # Friendship status
+    viewer = await database.db.users.find_one({"email": email})
+    is_self = viewer["email"] == user["email"]
+    is_friend = user["email"] in viewer.get("friends", [])
+    request_sent = user["email"] in viewer.get("friend_requests_sent", [])
+    request_received = user["email"] in viewer.get("friend_requests_received", [])
 
     return {
         "username": user.get("username"),
@@ -402,14 +416,43 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         "rank_name": rank_name,
         "tier": tier,
         "global_rank": global_rank,
-        "wins": user.get("wins", 0),
-        "matches_played": user.get("matches_played", 0),
+        "wins": wins,
+        "matches_played": matches_played,
+        "win_rate": win_rate,
         "win_streak": user.get("win_streak", 0),
-        "solved_count": len(user.get("solved_exercises", [])),
-        "equipped_achievements": user.get("equipped_achievements", []),
+        "max_elo": max_elo,
+        "max_rank_name": max_rank_name,
+        "bot_wins": bot_wins,
+        "bot_matches": bot_matches,
+        "bot_winrate": bot_winrate,
+        "bot_wins_by_diff": user.get("bot_wins_by_diff", {}),
+        "bot_matches_by_diff": user.get("bot_matches_by_diff", {}),
+        "solved_count": len(solved_ids),
+        "solved_by_difficulty": solved_by_diff,
+        "hardest_exercise": hardest_exercise,
+        "equipped_achievements": equipped_details,
         "equipped_frame": user.get("equipped_frame"),
         "profile_background": user.get("profile_background"),
+        "lang_stats": user.get("lang_stats", {}),
+        "friendship_status": {
+            "is_self": is_self,
+            "is_friend": is_friend,
+            "request_sent": request_sent,
+            "request_received": request_received,
+        },
     }
+
+
+@router.post("/api/user/bot-result")
+async def record_bot_result(body: dict, email: str = Depends(get_current_user)):
+    won  = body.get("won", False)
+    diff = body.get("difficulty", "normal")
+    inc  = {"bot_matches": 1, f"bot_matches_by_diff.{diff}": 1}
+    if won:
+        inc["bot_wins"] = 1
+        inc[f"bot_wins_by_diff.{diff}"] = 1
+    await database.db.users.update_one({"email": email}, {"$inc": inc})
+    return {"ok": True}
 
 
 @router.post("/api/user/upload-background")
@@ -417,6 +460,7 @@ async def upload_profile_background(
     bg: UploadFile = File(...),
     email: str = Depends(get_current_user)
 ):
+    await _validate_image(bg)
     try:
         safe_id = email.replace("@", "_at_").replace(".", "_") + "_bg"
         result = cloudinary.uploader.upload(

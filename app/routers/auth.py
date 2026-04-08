@@ -1,4 +1,4 @@
-import random
+import secrets
 import string
 from datetime import datetime, timedelta
 
@@ -20,7 +20,7 @@ VERIFICATION_EXPIRE_MINUTES = 5
 
 
 def _generate_code() -> str:
-    return "".join(random.choices(string.digits, k=6))
+    return "".join(secrets.choice(string.digits) for _ in range(6))
 
 
 def _hash_code(code: str) -> str:

@@ -15,20 +15,13 @@ ACHIEVEMENTS_CATALOG = [
     {"key": "exercises_25",  "category": "exercises",   "title": "Experto en Código",   "description": "Resuelve 25 ejercicios",            "threshold": 25,  "rarity": "epic",      "icon": "💻"},
     {"key": "exercises_50",  "category": "exercises",   "title": "Maestro del Código",  "description": "Resuelve 50 ejercicios",            "threshold": 50,  "rarity": "legendary", "icon": "💻"},
     {"key": "exercises_100", "category": "exercises",   "title": "Leyenda del Código",  "description": "Resuelve 100 ejercicios",           "threshold": 100, "rarity": "ultimate",  "icon": "💻"},
-    # Partidas ganadas
-    {"key": "wins_1",        "category": "wins",        "title": "Primera Victoria",    "description": "Gana 1 partida",                    "threshold": 1,   "rarity": "common",    "icon": "⚔️"},
-    {"key": "wins_5",        "category": "wins",        "title": "Combatiente",         "description": "Gana 5 partidas",                   "threshold": 5,   "rarity": "uncommon",  "icon": "⚔️"},
-    {"key": "wins_10",       "category": "wins",        "title": "Veterano",            "description": "Gana 10 partidas",                  "threshold": 10,  "rarity": "rare",      "icon": "⚔️"},
-    {"key": "wins_25",       "category": "wins",        "title": "Guerrero",            "description": "Gana 25 partidas",                  "threshold": 25,  "rarity": "epic",      "icon": "⚔️"},
-    {"key": "wins_50",       "category": "wins",        "title": "Campeón",             "description": "Gana 50 partidas",                  "threshold": 50,  "rarity": "legendary", "icon": "⚔️"},
-    {"key": "wins_100",      "category": "wins",        "title": "Leyenda de Batalla",  "description": "Gana 100 partidas",                 "threshold": 100, "rarity": "ultimate",  "icon": "⚔️"},
-    # Clasificatorias ganadas
-    {"key": "ranked_1",      "category": "ranked_wins", "title": "Clasificado",         "description": "Gana 1 partida clasificatoria",     "threshold": 1,   "rarity": "common",    "icon": "🏆"},
-    {"key": "ranked_5",      "category": "ranked_wins", "title": "Competidor",          "description": "Gana 5 partidas clasificatorias",   "threshold": 5,   "rarity": "uncommon",  "icon": "🏆"},
-    {"key": "ranked_10",     "category": "ranked_wins", "title": "Rival Peligroso",     "description": "Gana 10 partidas clasificatorias",  "threshold": 10,  "rarity": "rare",      "icon": "🏆"},
-    {"key": "ranked_25",     "category": "ranked_wins", "title": "Élite Clasificada",   "description": "Gana 25 partidas clasificatorias",  "threshold": 25,  "rarity": "epic",      "icon": "🏆"},
-    {"key": "ranked_50",     "category": "ranked_wins", "title": "Maestro Clasificado", "description": "Gana 50 partidas clasificatorias",  "threshold": 50,  "rarity": "legendary", "icon": "🏆"},
-    {"key": "ranked_100",    "category": "ranked_wins", "title": "Predador del Ranking","description": "Gana 100 partidas clasificatorias", "threshold": 100, "rarity": "ultimate",  "icon": "🏆"},
+    # Victorias clasificatorias
+    {"key": "ranked_1",      "category": "ranked_wins", "title": "Clasificado",         "description": "Gana 1 partida clasificatoria",     "threshold": 1,   "rarity": "common",    "icon": "⚡"},
+    {"key": "ranked_5",      "category": "ranked_wins", "title": "Competidor",          "description": "Gana 5 partidas clasificatorias",   "threshold": 5,   "rarity": "uncommon",  "icon": "⚡"},
+    {"key": "ranked_10",     "category": "ranked_wins", "title": "Rival Peligroso",     "description": "Gana 10 partidas clasificatorias",  "threshold": 10,  "rarity": "rare",      "icon": "⚡"},
+    {"key": "ranked_25",     "category": "ranked_wins", "title": "Élite Clasificada",   "description": "Gana 25 partidas clasificatorias",  "threshold": 25,  "rarity": "epic",      "icon": "⚡"},
+    {"key": "ranked_50",     "category": "ranked_wins", "title": "Maestro Clasificado", "description": "Gana 50 partidas clasificatorias",  "threshold": 50,  "rarity": "legendary", "icon": "⚡"},
+    {"key": "ranked_100",    "category": "ranked_wins", "title": "Predador del Ranking","description": "Gana 100 partidas clasificatorias", "threshold": 100, "rarity": "ultimate",  "icon": "⚡"},
 ]
 
 _CATALOG_MAP = {a["key"]: a for a in ACHIEVEMENTS_CATALOG}
@@ -37,8 +30,6 @@ _CATALOG_MAP = {a["key"]: a for a in ACHIEVEMENTS_CATALOG}
 def _get_stat(user: dict, category: str) -> int:
     if category == "exercises":
         return len(user.get("solved_exercises", []))
-    if category == "wins":
-        return user.get("wins", 0)
     if category == "ranked_wins":
         return user.get("ranked_wins", 0)
     return 0

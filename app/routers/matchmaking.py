@@ -15,8 +15,9 @@ from app.models.exercise import SubmitBatchRequest
 router = APIRouter()
 
 # In-memory stores for matchmaking
-waiting_players: dict = {}   # { email: { "ws": WebSocket, "data": player_data, "unranked": bool } }
+waiting_players: dict = {}   # { email: { "ws": WebSocket, "data": player_data } }
 active_matches: dict = {}    # { match_id: match_data }
+pending_invites: dict = {}   # { invite_id: { "from": email, "to": email, "from_username": str, "status": "pending"|"accepted"|"rejected", "match_id": None } }
 
 
 def _get_rank_tier(e: int) -> int:
@@ -65,18 +66,16 @@ async def _pick_exercise() -> dict:
     return chosen_ex
 
 
-async def _ws_handle_join(websocket: WebSocket, email: str, user: dict, unranked: bool):
+async def _ws_handle_join(websocket: WebSocket, email: str, user: dict):
     player_data = await _build_player_data(email, user)
     my_tier = player_data["tier"]
 
-    # Look for an eligible opponent
+    # Look for an eligible opponent (SBMM: max 2 tier difference)
     opponent_email = None
     for opp_email, opp in list(waiting_players.items()):
         if opp_email == email:
             continue
-        if opp.get("unranked", False) != unranked:
-            continue
-        if not unranked and abs(opp["data"]["tier"] - my_tier) > 2:
+        if abs(opp["data"]["tier"] - my_tier) > 2:
             continue
         opponent_email = opp_email
         break
@@ -94,7 +93,6 @@ async def _ws_handle_join(websocket: WebSocket, email: str, user: dict, unranked
             "exercise": chosen_ex,
             "status": "ongoing",
             "winner": None,
-            "unranked": unranked,
             "event": asyncio.Event()
         }
 
@@ -110,7 +108,6 @@ async def _ws_handle_join(websocket: WebSocket, email: str, user: dict, unranked
             "email": email,
             "data": player_data,
             "ws": websocket,
-            "unranked": unranked
         }
         await websocket.send_text(json.dumps({"status": "queued"}))
 
@@ -152,7 +149,7 @@ async def matchmaking_ws(websocket: WebSocket, token: str = Query(...)):
 
             action = msg.get("action")
             if action == "join":
-                await _ws_handle_join(websocket, email, user, bool(msg.get("unranked", False)))
+                await _ws_handle_join(websocket, email, user)
             elif action == "leave":
                 waiting_players.pop(email, None)
                 await websocket.send_text(json.dumps({"status": "left"}))
@@ -165,6 +162,9 @@ async def get_match_state(match_id: str, email: str = Depends(get_current_user))
     match = active_matches.get(match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Partida no encontrada")
+
+    if match["player1"]["email"] != email and match["player2"]["email"] != email:
+        raise HTTPException(status_code=403, detail="No eres participante de esta partida")
 
     is_p1 = match["player1"]["email"] == email
     opponent_data = match["player2"] if is_p1 else match["player1"]
@@ -190,6 +190,9 @@ async def poll_match_state(match_id: str, email: str = Depends(get_current_user)
     if not match:
         raise HTTPException(status_code=404, detail="Partida no encontrada")
 
+    if match["player1"]["email"] != email and match["player2"]["email"] != email:
+        raise HTTPException(status_code=403, detail="No eres participante de esta partida")
+
     try:
         await asyncio.wait_for(match["event"].wait(), timeout=25.0)
 
@@ -211,6 +214,9 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
     match = active_matches.get(match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Partida no encontrada")
+
+    if match["player1"]["email"] != email and match["player2"]["email"] != email:
+        raise HTTPException(status_code=403, detail="No eres participante de esta partida")
 
     if match["status"] != "ongoing":
         return {"status": match["status"], "winner": match["winner"]}
@@ -236,17 +242,25 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
 
         winner_email = email
         loser_email = match["player2"]["email"] if is_p1 else match["player1"]["email"]
+        is_friendly = match.get("match_type") == "friendly"
 
-        is_ranked = not match.get("unranked", False)
-        coins_reward = 30 if is_ranked else 15
-        winner_inc = {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1, "coins": coins_reward}
-        if is_ranked:
-            winner_inc["ranked_wins"] = 1
-        await database.db.users.update_one({"email": winner_email}, {"$inc": winner_inc})
-        await database.db.users.update_one(
-            {"email": loser_email},
-            {"$inc": {"elo": -15, "matches_played": 1}, "$set": {"win_streak": 0}}
-        )
+        if not is_friendly:
+            winner_inc = {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1, "coins": 30, "ranked_wins": 1}
+            await database.db.users.update_one({"email": winner_email}, {"$inc": winner_inc})
+
+            # Track max_elo
+            winner_doc = await database.db.users.find_one({"email": winner_email}, {"elo": 1, "max_elo": 1})
+            new_elo = winner_doc.get("elo", 0)
+            if new_elo > winner_doc.get("max_elo", 0):
+                await database.db.users.update_one({"email": winner_email}, {"$set": {"max_elo": new_elo}})
+
+            await database.db.users.update_one(
+                {"email": loser_email},
+                {"$inc": {"elo": -15, "matches_played": 1}, "$set": {"win_streak": 0}}
+            )
+        else:
+            # Friendly: solo coins simbólicas, sin ELO ni stats ranked
+            await database.db.users.update_one({"email": winner_email}, {"$inc": {"coins": 10}})
 
         await database.db.matches.insert_one({
             "match_id": match_id,
@@ -255,7 +269,6 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
             "winner_email": winner_email,
             "loser_email": loser_email,
             "exercise_id": match["exercise"].get("id"),
-            "unranked": match.get("unranked", False),
             "created_at": datetime.utcnow()
         })
 
@@ -264,3 +277,112 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
         return {"status": "finished", "winner": email, "is_winner": True}
 
     return {"status": "ongoing", "progress": progress_pct}
+
+
+# ── Friendly battle invite endpoints ─────────────────────────────────────────
+
+@router.post("/api/friendly/invite/{target_username}")
+async def friendly_invite(target_username: str, email: str = Depends(get_current_user)):
+    target = await database.db.users.find_one({"username": target_username})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    sender = await database.db.users.find_one({"email": email})
+    if not sender:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    if target["email"] not in sender.get("friends", []):
+        raise HTTPException(status_code=403, detail="Solo puedes retar a tus amigos")
+
+    invite_id = str(uuid.uuid4())
+    pending_invites[invite_id] = {
+        "from": email,
+        "to": target["email"],
+        "from_username": sender.get("username", email),
+        "status": "pending",
+        "match_id": None,
+    }
+    return {"invite_id": invite_id}
+
+
+@router.get("/api/friendly/pending")
+async def friendly_pending(email: str = Depends(get_current_user)):
+    result = [
+        {"invite_id": iid, "from_username": inv["from_username"]}
+        for iid, inv in pending_invites.items()
+        if inv["to"] == email and inv["status"] == "pending"
+    ]
+    return result
+
+
+@router.post("/api/friendly/accept/{invite_id}")
+async def friendly_accept(invite_id: str, email: str = Depends(get_current_user)):
+    inv = pending_invites.get(invite_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitación no encontrada")
+    if inv["to"] != email:
+        raise HTTPException(status_code=403, detail="No eres el destinatario")
+    if inv["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Invitación ya procesada")
+
+    # Build player data for both participants
+    sender_user = await database.db.users.find_one({"email": inv["from"]})
+    receiver_user = await database.db.users.find_one({"email": email})
+
+    if not sender_user or not receiver_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    p1_data = await _build_player_data(inv["from"], sender_user)
+    p2_data = await _build_player_data(email, receiver_user)
+    chosen_ex = await _pick_exercise()
+
+    match_id = str(uuid.uuid4())
+    active_matches[match_id] = {
+        "player1": p1_data,
+        "player2": p2_data,
+        "p1_progress": 0,
+        "p2_progress": 0,
+        "exercise": chosen_ex,
+        "status": "ongoing",
+        "winner": None,
+        "match_type": "friendly",
+        "event": asyncio.Event()
+    }
+
+    inv["status"] = "accepted"
+    inv["match_id"] = match_id
+    return {"match_id": match_id}
+
+
+@router.post("/api/friendly/reject/{invite_id}")
+async def friendly_reject(invite_id: str, email: str = Depends(get_current_user)):
+    inv = pending_invites.get(invite_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitación no encontrada")
+    if inv["to"] != email:
+        raise HTTPException(status_code=403, detail="No eres el destinatario")
+    inv["status"] = "rejected"
+    return {"ok": True}
+
+
+@router.post("/api/friendly/cancel/{invite_id}")
+async def friendly_cancel(invite_id: str, email: str = Depends(get_current_user)):
+    inv = pending_invites.get(invite_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitación no encontrada")
+    if inv["from"] != email:
+        raise HTTPException(status_code=403, detail="No eres el emisor")
+    if inv["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Invitación ya procesada")
+    inv["status"] = "cancelled"
+    return {"ok": True}
+
+
+@router.get("/api/friendly/invite-status/{invite_id}")
+async def friendly_invite_status(invite_id: str, email: str = Depends(get_current_user)):
+    inv = pending_invites.get(invite_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitación no encontrada")
+    if inv["from"] != email:
+        raise HTTPException(status_code=403, detail="No eres el emisor")
+    return {"status": inv["status"], "match_id": inv["match_id"]}
