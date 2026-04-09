@@ -444,6 +444,11 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
             "request_sent": request_sent,
             "request_received": request_received,
         },
+        "survival_stats": user.get("survival_stats", {
+            "normal":    {"max_exercises": 0},
+            "dificil":   {"max_exercises": 0},
+            "demencial": {"max_exercises": 0},
+        }),
     }
 
 
