@@ -45,6 +45,16 @@ async def _send_to(ws: WebSocket, msg: dict):
         pass
 
 
+async def _broadcast_to_others(room: dict, sender_email: str, msg: dict):
+    """Send msg to all connected players except the sender."""
+    for em, ws in list(room["connections"].items()):
+        if em != sender_email:
+            try:
+                await ws.send_text(json.dumps(msg))
+            except Exception:
+                pass
+
+
 def _room_players_payload(room: dict) -> list:
     return [
         {"email": p["email"], "username": p["username"], "avatar": p["avatar"]}
@@ -137,6 +147,7 @@ async def _end_game(room_id: str):
                         "exercises_solved": exercises_solved,
                         "difficulty":       diff_key,
                         "new_record":       new_record,
+                        "abandoned_by":     room.get("abandoned_by"),
                     }))
                 except Exception:
                     pass
@@ -377,6 +388,10 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
     await websocket.accept()
     room["connections"][email] = websocket
 
+    # Cancel any pending disconnect-grace task for this player
+    if grace_task := room.get("disconnect_tasks", {}).pop(email, None):
+        grace_task.cancel()
+
     # Send current room state on connect
     if room["status"] == "in_game":
         await _send_to(websocket, {
@@ -384,6 +399,7 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
             "exercise":     _exercise_payload(room["exercise"]),
             "time_left":    room["time_left"],
             "exercise_num": room["exercise_num"],
+            "current_code": room.get("current_code", ""),
         })
     elif room["status"] == "lobby":
         await _send_to(websocket, {
@@ -420,21 +436,73 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
                 # Pick next exercise
                 next_exercise = await _pick_exercise()
                 room["exercise"] = next_exercise
+                room["current_code"] = ""  # Reset shared code on new exercise
 
                 await _broadcast(room, {
-                    "type":         "exercise_solved",
-                    "solved_by":    submitter_username,
+                    "type":          "exercise_solved",
+                    "solved_by":     submitter_username,
                     "next_exercise": _exercise_payload(next_exercise),
-                    "time_added":   config["bonus"],
-                    "time_left":    room["time_left"],
-                    "exercise_num": room["exercise_num"],
+                    "time_added":    config["bonus"],
+                    "time_left":     room["time_left"],
+                    "exercise_num":  room["exercise_num"],
                 })
+
+            elif action == "code_sync":
+                if room.get("status") != "in_game":
+                    continue
+                code = msg.get("code", "")
+                lang = msg.get("lang", "Python")
+                room["current_code"] = code
+                sender_username = next(
+                    (p["username"] for p in room["players"] if p["email"] == email),
+                    email
+                )
+                await _broadcast_to_others(room, email, {
+                    "type":     "code_sync",
+                    "code":     code,
+                    "lang":     lang,
+                    "username": sender_username,
+                })
+
+            elif action == "lang_sync":
+                if room.get("status") != "in_game":
+                    continue
+                lang = msg.get("lang", "Python")
+                sender_username = next(
+                    (p["username"] for p in room["players"] if p["email"] == email),
+                    email
+                )
+                await _broadcast_to_others(room, email, {
+                    "type":     "lang_sync",
+                    "lang":     lang,
+                    "username": sender_username,
+                })
+
+            elif action == "abandon":
+                if room.get("status") != "in_game":
+                    continue
+                leaver = next(
+                    (p["username"] for p in room["players"] if p["email"] == email),
+                    email
+                )
+                room["abandoned_by"] = leaver
+                await _end_game(room_id)
 
     except WebSocketDisconnect:
         room["connections"].pop(email, None)
-        # Notify others that player left (only if lobby; in-game they continue)
         if room.get("status") == "lobby":
             await _broadcast(room, {
                 "type":    "player_left",
                 "players": _room_players_payload(room),
             })
+        elif room.get("status") == "in_game":
+            # 5-second grace period: end game if player doesn't reconnect
+            async def _grace_end(r_id=room_id, e=email):
+                await asyncio.sleep(5)
+                r = survival_rooms.get(r_id)
+                if r and r.get("status") == "in_game" and e not in r.get("connections", {}):
+                    leaver = next((p["username"] for p in r["players"] if p["email"] == e), e)
+                    r["abandoned_by"] = leaver
+                    await _end_game(r_id)
+            grace_task = asyncio.create_task(_grace_end())
+            room.setdefault("disconnect_tasks", {})[email] = grace_task
