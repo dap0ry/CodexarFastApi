@@ -609,8 +609,15 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
         solved_ids = user.get("solved_exercises", []) if user else []
         if exercise_id not in solved_ids:
             difficulty = ex.get("difficulty", "Normal")
-            elo_gain   = 1 if difficulty == "Fácil" else (5 if difficulty == "Difícil" else 2)
-            coins_gain = 10 if difficulty == "Fácil" else (50 if difficulty == "Difícil" else 25)
+            _rewards = {
+                "Fácil":       (1,  10),
+                "Normal":      (2,  25),
+                "Difícil":     (5,  50),
+                "Muy Difícil": (8,  80),
+                "Insane":      (12, 120),
+                "Abyssal":     (20, 200),
+            }
+            elo_gain, coins_gain = _rewards.get(difficulty, (2, 25))
 
             await database.db.users.update_one(
                 {"email": email},

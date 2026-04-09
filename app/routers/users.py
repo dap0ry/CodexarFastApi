@@ -278,6 +278,8 @@ async def get_user_stats(email: str = Depends(get_current_user)):
             stats["medium"] += 1
         elif diff == "Difícil":
             stats["hard"] += 1
+        elif diff in ("Muy Difícil", "Insane", "Abyssal"):
+            stats["hard"] += 1
 
     # Assign any missing ones to 'easy' so the pie chart adds up to total
     missing = stats["total"] - found_count
