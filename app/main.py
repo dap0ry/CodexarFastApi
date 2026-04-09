@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import *  # noqa: F401,F403 — loads env vars and cloudinary config
 from app.core.config import ALLOWED_ORIGINS
 from app.core.database import startup_db_client, shutdown_db_client
-from app.routers import auth, users, friends, exercises, matchmaking, achievements, store
+from app.routers import auth, users, friends, exercises, matchmaking, achievements
 
 
 @asynccontextmanager
@@ -65,4 +65,3 @@ app.include_router(friends.router)
 app.include_router(exercises.router)
 app.include_router(matchmaking.router)
 app.include_router(achievements.router)
-app.include_router(store.router)

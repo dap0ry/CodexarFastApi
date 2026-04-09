@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import datetime
 from typing import Optional, List
@@ -8,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 import app.core.database as database
 from app.core.security import get_current_user, verify_password, get_password_hash
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,20}$')
@@ -98,7 +100,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
 
 
 @router.get("/api/user/check-username/{username}")
-async def check_username_availability(username: str):
+async def check_username_availability(username: str, email: str = Depends(get_current_user)):
     existing = await database.db.users.find_one({"username": username})
     return {"available": existing is None}
 
@@ -133,7 +135,7 @@ async def onboard_user(
             )
             avatar_url = result.get("secure_url")
         except Exception as e:
-            print("Error uploading to Cloudinary:", str(e))
+            logger.warning("Error uploading to Cloudinary: %s", str(e))
             raise HTTPException(status_code=500, detail="Error subiendo tu foto de perfil a The Matrix.")
 
     update_data = {
@@ -230,7 +232,7 @@ async def update_user_profile(
             )
             update_data["avatar"] = result.get("secure_url")
         except Exception as e:
-            print("Cloudinary Overwrite Reject:", str(e))
+            logger.warning("Cloudinary Overwrite Reject: %s", str(e))
             raise HTTPException(status_code=500, detail="Error transmitiendo la imagen al CDN global.")
 
     # Execute DB State Mutation
@@ -477,5 +479,5 @@ async def upload_profile_background(
         )
         return {"status": "success", "url": bg_url}
     except Exception as e:
-        print("Background upload error:", str(e))
+        logger.warning("Background upload error: %s", str(e))
         raise HTTPException(status_code=500, detail="Error subiendo el fondo de perfil")

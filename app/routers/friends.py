@@ -192,7 +192,3 @@ async def remove_friend(target_username: str, email: str = Depends(get_current_u
     return {"status": "success", "message": "Amistad eliminada"}
 
 
-@router.get("/api/friends/activity")
-async def get_activity_feed(email: str = Depends(get_current_user)):
-    # Currently no activity data
-    return []

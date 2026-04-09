@@ -1,5 +1,9 @@
+import logging
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import MONGODB_URI, DB_NAME
+
+logger = logging.getLogger(__name__)
 
 client: AsyncIOMotorClient = None
 db = None
@@ -9,7 +13,7 @@ async def startup_db_client():
     global client, db
     client = AsyncIOMotorClient(MONGODB_URI)
     db = client[DB_NAME]
-    print(f"✅ Connected to MongoDB Atlas -> Database: {DB_NAME}")
+    logger.info(f"Connected to MongoDB Atlas -> Database: {DB_NAME}")
     # TTL indexes: MongoDB auto-deletes expired docs
     await db.email_verifications.create_index("expires_at", expireAfterSeconds=0)
     await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
@@ -20,7 +24,7 @@ async def startup_db_client():
     # Remove exercises whose title is no longer in the seed
     del_result = await db.exercises.delete_many({"title": {"$nin": list(seed_titles)}})
     if del_result.deleted_count:
-        print(f"🗑  Removed {del_result.deleted_count} stale exercises.")
+        logger.info(f"Removed {del_result.deleted_count} stale exercises.")
 
     # Upsert every seed exercise by title (preserves _id and solver stats for existing ones)
     updated = inserted = 0
@@ -40,9 +44,9 @@ async def startup_db_client():
             inserted += 1
         else:
             updated += 1
-    print(f"✅ Exercises synced: {inserted} inserted, {updated} updated.")
+    logger.info(f"Exercises synced: {inserted} inserted, {updated} updated.")
 
 
 async def shutdown_db_client():
     client.close()
-    print("❌ Disconnected from MongoDB Atlas.")
+    logger.info("Disconnected from MongoDB Atlas.")
