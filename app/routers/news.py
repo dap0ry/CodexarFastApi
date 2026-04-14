@@ -18,6 +18,13 @@ def _oid(doc: dict) -> dict:
     return doc
 
 
+async def _get_user(email: str) -> dict:
+    user = await database.db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return user
+
+
 async def _resolve_mentions(body: str) -> list[str]:
     """Return list of valid usernames mentioned with @ in body."""
     raw = re.findall(r"@(\w+)", body)
@@ -41,26 +48,28 @@ class NewsCreate(BaseModel):
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/")
-async def list_news(current_user: dict = Depends(get_current_user)):
+async def list_news(email: str = Depends(get_current_user)):
+    user = await _get_user(email)
     cursor = database.db.news.find({}).sort("created_at", -1)
     docs = await cursor.to_list(length=50)
     result = []
     for doc in docs:
         doc = _oid(doc)
         doc["like_count"] = len(doc.get("likes", []))
-        doc["liked_by_me"] = current_user["username"] in doc.get("likes", [])
+        doc["liked_by_me"] = user["username"] in doc.get("likes", [])
         doc.pop("likes", None)
         result.append(doc)
     return result
 
 
 @router.post("/")
-async def create_news(payload: NewsCreate, current_user: dict = Depends(get_current_user)):
+async def create_news(payload: NewsCreate, email: str = Depends(get_current_user)):
+    user = await _get_user(email)
     mentions = await _resolve_mentions(payload.body)
     doc = {
         "title": payload.title.strip(),
         "subtitle": payload.subtitle.strip(),
-        "creator": current_user["username"],
+        "creator": user["username"],
         "body": payload.body.strip(),
         "mentions": mentions,
         "likes": [],
@@ -76,7 +85,8 @@ async def create_news(payload: NewsCreate, current_user: dict = Depends(get_curr
 
 
 @router.post("/{news_id}/like")
-async def toggle_like(news_id: str, current_user: dict = Depends(get_current_user)):
+async def toggle_like(news_id: str, email: str = Depends(get_current_user)):
+    user = await _get_user(email)
     try:
         oid = ObjectId(news_id)
     except Exception:
@@ -86,7 +96,7 @@ async def toggle_like(news_id: str, current_user: dict = Depends(get_current_use
     if not news:
         raise HTTPException(status_code=404, detail="Noticia no encontrada")
 
-    username = current_user["username"]
+    username = user["username"]
     likes: list = news.get("likes", [])
 
     if username in likes:
