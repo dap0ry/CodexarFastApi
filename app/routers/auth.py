@@ -97,6 +97,8 @@ async def verify_email(body: EmailVerifyRequest):
         "is_onboarded": False,
         "elo": 0,
         "win_streak": 0,
+        "role": "user",
+        "is_banned": False,
     }
     await database.db.users.insert_one(user_dict)
     await database.db.email_verifications.delete_many({"email": body.email})
