@@ -27,7 +27,7 @@ class TestCaseIn(BaseModel):
 class ExerciseCreate(BaseModel):
     title: str
     description: str
-    difficulty: str   # Fácil | Normal | Difícil | Muy Difícil | Insane | Abyssal
+    difficulty: int   # ELO rating: 800 | 1000 | 1200 | 1400 | 1600 | 1800 | 2000 | 2200 | 2400 | 2600 | 3000 | 3500
     category: str
     test_cases: List[TestCaseIn]
     stub_python: str = ""
@@ -633,16 +633,20 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
         user = await database.db.users.find_one({"email": email})
         solved_ids = user.get("solved_exercises", []) if user else []
         if exercise_id not in solved_ids:
-            difficulty = ex.get("difficulty", "Normal")
-            _rewards = {
-                "Fácil":       (1,  10),
-                "Normal":      (2,  25),
-                "Difícil":     (5,  50),
-                "Muy Difícil": (8,  80),
-                "Insane":      (12, 120),
-                "Abyssal":     (20, 200),
-            }
-            elo_gain, coins_gain = _rewards.get(difficulty, (2, 25))
+            difficulty = ex.get("difficulty", 1200)
+            # ELO-based rewards
+            def _elo_reward(d):
+                if d < 1000:   return (1,  10)
+                if d < 1200:   return (2,  20)
+                if d < 1400:   return (3,  30)
+                if d < 1600:   return (5,  50)
+                if d < 1800:   return (8,  80)
+                if d < 2000:   return (12, 120)
+                if d < 2400:   return (18, 180)
+                if d < 3000:   return (25, 250)
+                if d < 3500:   return (35, 350)
+                return (50, 500)
+            elo_gain, coins_gain = _elo_reward(difficulty if isinstance(difficulty, int) else 1200)
 
             await database.db.users.update_one(
                 {"email": email},
@@ -669,9 +673,9 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
 
 @router.post("/api/exercises/create")
 async def create_exercise(body: ExerciseCreate, creator: dict = Depends(require_moderator)):
-    VALID_DIFFICULTIES = {"Fácil", "Normal", "Difícil", "Muy Difícil", "Insane", "Abyssal"}
+    VALID_DIFFICULTIES = {800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 3000, 3500}
     if body.difficulty not in VALID_DIFFICULTIES:
-        raise HTTPException(status_code=400, detail=f"Dificultad inválida. Opciones: {VALID_DIFFICULTIES}")
+        raise HTTPException(status_code=400, detail=f"Dificultad inválida. Opciones: {sorted(VALID_DIFFICULTIES)}")
     if len(body.test_cases) < 1:
         raise HTTPException(status_code=400, detail="Se requiere al menos un caso de prueba")
 
@@ -694,3 +698,119 @@ async def create_exercise(body: ExerciseCreate, creator: dict = Depends(require_
     }
     result = await database.db.exercises.insert_one(doc)
     return {"message": "Ejercicio creado correctamente", "id": str(result.inserted_id)}
+
+
+# ─────────────────────────────────────────────
+#  User exercise submission (pending approval)
+# ─────────────────────────────────────────────
+
+@router.post("/api/exercises/submit")
+async def submit_exercise(body: ExerciseCreate, email: str = Depends(get_current_user)):
+    """Any authenticated user can submit an exercise for review (max 3 pending at once)."""
+    user = await database.db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Mods/admins bypass → go straight to approved
+    role = user.get("role", "user")
+    if role in ("moderator", "admin"):
+        doc = {
+            "title":       body.title.strip(),
+            "description": body.description.strip(),
+            "difficulty":  body.difficulty,
+            "category":    body.category.strip(),
+            "test_cases":  [{"input": tc.input.strip(), "expected_output": tc.expected_output.strip()} for tc in body.test_cases],
+            "stub": {"python": body.stub_python, "cpp": body.stub_cpp, "java": body.stub_java, "go": body.stub_go, "csharp": body.stub_csharp},
+            "created_by":  user.get("username", ""),
+            "created_at":  datetime.utcnow(),
+            "solvers":     [],
+            "status":      "approved",
+        }
+        result = await database.db.exercises.insert_one(doc)
+        return {"message": "Ejercicio publicado directamente.", "id": str(result.inserted_id)}
+
+    # Count pending submissions
+    pending_count = await database.db.pending_exercises.count_documents(
+        {"submitted_by": user.get("username", ""), "status": "pending"}
+    )
+    if pending_count >= 3:
+        raise HTTPException(status_code=400, detail="Ya tienes 3 ejercicios pendientes de revisión. Espera a que sean aprobados o rechazados.")
+
+    VALID_DIFFICULTIES = {800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 3000, 3500}
+    if body.difficulty not in VALID_DIFFICULTIES:
+        raise HTTPException(status_code=400, detail=f"Dificultad inválida. Opciones: {sorted(VALID_DIFFICULTIES)}")
+    if len(body.test_cases) < 1:
+        raise HTTPException(status_code=400, detail="Se requiere al menos un caso de prueba")
+
+    doc = {
+        "title":         body.title.strip(),
+        "description":   body.description.strip(),
+        "difficulty":    body.difficulty,
+        "category":      body.category.strip(),
+        "test_cases":    [{"input": tc.input.strip(), "expected_output": tc.expected_output.strip()} for tc in body.test_cases],
+        "stub": {"python": body.stub_python, "cpp": body.stub_cpp, "java": body.stub_java, "go": body.stub_go, "csharp": body.stub_csharp},
+        "submitted_by":  user.get("username", ""),
+        "submitted_at":  datetime.utcnow(),
+        "status":        "pending",
+    }
+    result = await database.db.pending_exercises.insert_one(doc)
+    return {"message": "Ejercicio enviado para revisión.", "id": str(result.inserted_id)}
+
+
+# ─────────────────────────────────────────────
+#  List pending exercises (mod/admin only)
+# ─────────────────────────────────────────────
+
+@router.get("/api/exercises/pending")
+async def list_pending_exercises(moderator: dict = Depends(require_moderator)):
+    from bson import ObjectId
+    cursor = database.db.pending_exercises.find({"status": "pending"}).sort("submitted_at", -1)
+    docs = await cursor.to_list(length=100)
+    result = []
+    for doc in docs:
+        doc["id"] = str(doc["_id"])
+        del doc["_id"]
+        result.append(doc)
+    return result
+
+
+# ─────────────────────────────────────────────
+#  Approve / Reject pending exercise
+# ─────────────────────────────────────────────
+
+@router.post("/api/exercises/pending/{pending_id}/approve")
+async def approve_exercise(pending_id: str, moderator: dict = Depends(require_moderator)):
+    from bson import ObjectId
+    try:
+        oid = ObjectId(pending_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+
+    pending = await database.db.pending_exercises.find_one({"_id": oid})
+    if not pending:
+        raise HTTPException(status_code=404, detail="Ejercicio pendiente no encontrado")
+
+    # Move to exercises collection
+    exercise_doc = {k: v for k, v in pending.items() if k not in ("_id", "status", "submitted_by", "submitted_at")}
+    exercise_doc["created_by"] = pending.get("submitted_by", "")
+    exercise_doc["created_at"] = pending.get("submitted_at", datetime.utcnow())
+    exercise_doc["solvers"] = []
+    await database.db.exercises.insert_one(exercise_doc)
+
+    # Mark as approved and remove from pending
+    await database.db.pending_exercises.delete_one({"_id": oid})
+    return {"message": "Ejercicio aprobado y publicado."}
+
+
+@router.post("/api/exercises/pending/{pending_id}/reject")
+async def reject_exercise(pending_id: str, moderator: dict = Depends(require_moderator)):
+    from bson import ObjectId
+    try:
+        oid = ObjectId(pending_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+
+    result = await database.db.pending_exercises.delete_one({"_id": oid})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Ejercicio pendiente no encontrado")
+    return {"message": "Ejercicio rechazado y eliminado."}

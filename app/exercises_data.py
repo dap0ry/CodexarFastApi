@@ -8,7 +8,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Máximo Común Divisor",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dados dos enteros positivos a y b, calcula su Máximo Común Divisor (MCD), "
             "es decir, el mayor entero d tal que d divide a a y d divide a b sin dejar resto.\n\n"
@@ -41,7 +41,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Test de Primalidad",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dado un entero n ≥ 2, determina si es un número primo.\n\n"
             "Un número primo es aquel divisible únicamente por 1 y por sí mismo. "
@@ -76,7 +76,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Fibonacci Iterativo",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "La sucesión de Fibonacci se define como:\n"
             "  F(0) = 0\n"
@@ -116,7 +116,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Búsqueda Binaria Clásica",
-        "difficulty": "Fácil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 800, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros ordenado de forma estrictamente ascendente y un valor objetivo "
             "target, devuelve el índice (base 0) de target en el array. Si target no se encuentra, "
@@ -158,7 +158,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Array de Sumas de Prefijo",
-        "difficulty": "Fácil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 800, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums de longitud n, construye y devuelve el array de sumas de "
             "prefijo prefix de la misma longitud, donde:\n"
@@ -199,7 +199,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Verificar Palíndromo",
-        "difficulty": "Fácil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 800, "category": "Strings", "total_solvers": 0,
         "description": (
             "Una cadena es un palíndromo si se lee igual de izquierda a derecha que de derecha a "
             "izquierda. Para esta tarea ignoraremos mayúsculas/minúsculas y solo consideraremos "
@@ -237,7 +237,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Anagrama Válido",
-        "difficulty": "Fácil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 800, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dos cadenas s y t son anagramas si una puede obtenerse reordenando los caracteres "
             "de la otra. En otras palabras, ambas deben contener exactamente los mismos caracteres "
@@ -277,7 +277,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Contar Bits (Popcount)",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dado un entero no negativo n, devuelve el número de bits en '1' que tiene "
             "su representación en binario. Esta operación se llama 'population count' o popcount.\n\n"
@@ -319,7 +319,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Criba de Eratóstenes",
-        "difficulty": "Normal", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 1200, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dado un entero n, utiliza la Criba de Eratóstenes para contar cuántos números "
             "primos existen estrictamente menores que n.\n\n"
@@ -355,7 +355,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Exponenciación Modular",
-        "difficulty": "Normal", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 1200, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Calcula (base^exp) mod m de forma eficiente usando el algoritmo de exponenciación "
             "rápida (binary exponentiation).\n\n"
@@ -399,7 +399,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Suma de Dos Elementos (Two Sum)",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums y un entero objetivo target, devuelve los índices "
             "de los dos elementos que suman target. Puedes asumir que existe exactamente "
@@ -438,7 +438,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Máximo Subarray (Kadane)",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums (puede contener negativos), encuentra el subarray "
             "contiguo de suma máxima y devuelve dicha suma.\n\n"
@@ -480,7 +480,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Búsqueda en Array Rotado",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Un array de enteros distintos ordenado ascendentemente fue rotado en algún punto "
             "pivote desconocido. Por ejemplo, [0,1,2,4,5,6,7] podría convertirse en [4,5,6,7,0,1,2].\n\n"
@@ -521,7 +521,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Caminos Únicos en una Cuadrícula",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Un robot parte de la esquina superior-izquierda de una cuadrícula de m filas × n "
             "columnas. El robot solo puede moverse hacia la derecha o hacia abajo. "
@@ -563,7 +563,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Substring sin Caracteres Repetidos",
-        "difficulty": "Normal", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1200, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena s, encuentra la longitud del substring más largo que no contenga "
             "caracteres repetidos.\n\n"
@@ -606,7 +606,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Fila k de Pascal",
-        "difficulty": "Normal", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 1200, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "El triángulo de Pascal es una matriz triangular donde cada elemento es la suma de "
             "los dos elementos directamente encima. Las primeras filas son:\n\n"
@@ -650,7 +650,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Agua Atrapada entre Muros",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros heights donde heights[i] representa la altura de un muro "
             "de ancho 1 unidad, calcula cuántas unidades de agua pueden quedar atrapadas "
@@ -692,7 +692,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Distancia de Edición (Levenshtein)",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dadas dos cadenas s1 y s2, calcula el número mínimo de operaciones necesarias para "
             "convertir s1 en s2. Las operaciones permitidas son:\n"
@@ -735,7 +735,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Subsecuencia Común más Larga (LCS)",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dadas dos cadenas s1 y s2, calcula la longitud de su subsecuencia común más larga (LCS). "
             "Una subsecuencia es una secuencia de caracteres que aparece en el mismo orden relativo "
@@ -777,7 +777,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Mochila 0/1 (Knapsack)",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Tienes una mochila con capacidad máxima W kilogramos y n objetos. "
             "Cada objeto i tiene un peso weights[i] y un valor values[i]. "
@@ -819,7 +819,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Multiplicación de Cadena de Matrices",
-        "difficulty": "Difícil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 1600, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dada una secuencia de n matrices A₁, A₂, ..., Aₙ donde la matriz Aᵢ tiene "
             "dimensiones dims[i-1] × dims[i], determina el número mínimo de multiplicaciones "
@@ -863,7 +863,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Conteo de Inversiones (Merge Sort)",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Un par de índices (i, j) con i < j forma una inversión si nums[i] > nums[j]. "
             "El número de inversiones mide qué tan desordenado está un array: 0 inversiones "
@@ -904,7 +904,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Número de Catalan",
-        "difficulty": "Difícil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 1600, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "El n-ésimo número de Catalan Cₙ cuenta el número de muchas estructuras combinatorias "
             "distintas, entre ellas:\n"
@@ -943,7 +943,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Invertir una Cadena",
-        "difficulty": "Fácil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 800, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena de texto s, devuelve la cadena invertida.\n\n"
             "Restricciones:\n"
@@ -968,7 +968,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Número Par o Impar",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dado un número entero n, devuelve \"Par\" si es par y \"Impar\" si es impar.\n\n"
             "Restricciones:\n"
@@ -996,7 +996,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Suma de Elementos",
-        "difficulty": "Fácil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 800, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros, devuelve la suma de todos sus elementos.\n\n"
             "Restricciones:\n"
@@ -1022,7 +1022,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Encontrar el Máximo",
-        "difficulty": "Fácil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 800, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros, encuentra y devuelve el valor máximo.\n\n"
             "Restricciones:\n"
@@ -1048,7 +1048,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "FizzBuzz",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dado un entero n, devuelve un array de strings desde 1 hasta n donde:\n"
             " - \"FizzBuzz\" si i es divisible por 3 y 5.\n"
@@ -1077,7 +1077,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Validar Paréntesis",
-        "difficulty": "Normal", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1200, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena s que contiene solo los caracteres '(', ')', '{', '}', '[' y ']', "
             "determina si la cadena es válida.\n\n"
@@ -1109,7 +1109,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Producto Excepto Él Mismo",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums, devuelve un array respuesta donde respuesta[i] es "
             "igual al producto de todos los elementos de nums excepto nums[i].\n\n"
@@ -1136,7 +1136,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Matriz Espiral",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dada una matriz m x n de enteros, devuelve todos los elementos de la matriz en orden espiral.\n\n"
             "Restricciones:\n"
@@ -1161,7 +1161,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Agrupar Anagramas",
-        "difficulty": "Normal", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1200, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dado un array de strings, agrupa los anagramas entre sí. Puedes devolver la respuesta en cualquier orden.\n\n"
             "Restricciones:\n"
@@ -1187,7 +1187,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Número Faltante",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array nums que contiene n números distintos en el rango [0, n], "
             "devuelve el único número en el rango que falta en el array.\n\n"
@@ -1215,7 +1215,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Generar Permutaciones",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array nums de enteros distintos, devuelve todas las posibles permutaciones. "
             "Puedes devolver la respuesta en cualquier orden.\n\n"
@@ -1240,7 +1240,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Buscar en Matriz 2D",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dada una matriz m x n en la que cada fila está ordenada de izquierda a derecha "
             "y el primer entero de cada fila es mayor que el último entero de la fila anterior, "
@@ -1266,7 +1266,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Tres Suma",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums, devuelve todos los tripletes "
             "[nums[i], nums[j], nums[k]] tales que i != j, i != k, y j != k, "
@@ -1294,7 +1294,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Palíndromo más Largo",
-        "difficulty": "Normal", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1200, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena s, devuelve el substring palindrómico más largo en s.\n\n"
             "Restricciones:\n"
@@ -1318,7 +1318,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Letras de de Teléfono",
-        "difficulty": "Normal", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1200, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena con dígitos del 2 al 9, devuelve todas las posibles combinaciones "
             "de letras que el número podría representar (como en un teclado telefónico).\n\n"
@@ -1344,7 +1344,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "N Reinas",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "El problema de las n-reinas consiste en colocar n reinas en un tablero de ajedrez n x n "
             "de forma que no haya dos reinas que se amenacen mutuamente (ni en la misma fila, columna "
@@ -1380,7 +1380,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Unir K Arrays Ordenados",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Se te da un array k arrays de enteros, donde cada array está ordenado ascendentemente.\n\n"
             "Únelos todos en un solo array ordenado y devuélvelo. Este algoritmo debe correr "
@@ -1408,7 +1408,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Resolver Sudoku",
-        "difficulty": "Difícil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 1600, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Escribe un programa para resolver un rompecabezas Sudoku completando las celdas vacías.\n\n"
             "El tablero es de 9x9 representado como lista de listas de strings. "
@@ -1436,7 +1436,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Paréntesis Válidos más Largos",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena que contiene solo los caracteres '(' y ')', encuentra la longitud de "
             "la subcadena contigua más larga que contiene paréntesis bien formados.\n\n"
@@ -1462,7 +1462,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Rectángulo Histograma",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros heights que representa la altura de las barras de un "
             "histograma donde el ancho de cada barra es 1, devuelve el área del rectángulo más "
@@ -1490,7 +1490,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Mediana de Dos Arrays",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dados dos arrays ordenados nums1 y nums2 de tamaño m y n respectivamente, "
             "devuelve la mediana de los dos arrays ordenados.\n\n"
@@ -1520,7 +1520,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Expresión Regular",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena de texto s y un patrón p, implementa el soporte de expresiones "
             "regulares con '.' (cualquier carácter individual) y '*' (cero o más del carácter anterior).\n\n"
@@ -1550,7 +1550,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Máximo Rectángulo",
-        "difficulty": "Difícil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1600, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dada una matriz binaria de 2 dimensiones, llena de los caracteres '0' y '1', "
             "encuentra el rectángulo más grande conformado únicamente por unos y devuelve su área.\n\n"
@@ -1576,7 +1576,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Buscar Palabra II",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una matriz de caracteres board y una lista de cadenas words, devuelve cuántas "
             "palabras de la lista pueden encontrarse en el board.\n\n"
@@ -1614,7 +1614,7 @@ EXERCISES_SEED = [
     },
     {
         "title": "Inserciones para Palíndromo",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dada una cadena s, inserta los caracteres mínimos requeridos para convertir la cadena en un palíndromo.\n\n"
             "Devuelve el número mínimo de caracteres que deben insertarse.\n\n"
@@ -1648,7 +1648,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Secuencia de Collatz",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "La conjetura de Collatz, también conocida como el problema 3n+1, es uno de los problemas "
             "abiertos más famosos en matemáticas. Fue propuesta por Lothar Collatz en 1937 y a día de hoy "
@@ -1696,7 +1696,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Subsecuencia Común Más Larga",
-        "difficulty": "Normal", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1200, "category": "Strings", "total_solvers": 0,
         "description": (
             "La Subsecuencia Común Más Larga (LCS, del inglés Longest Common Subsequence) es uno de "
             "los problemas fundacionales de la programación dinámica y tiene aplicaciones directas en "
@@ -1750,7 +1750,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Máximo Rectángulo en Histograma",
-        "difficulty": "Difícil", "category": "Stack", "total_solvers": 0,
+        "difficulty": 1600, "category": "Stack", "total_solvers": 0,
         "description": (
             "Se te da un histograma representado como un array de enteros no negativos heights, "
             "donde heights[i] es la altura de la barra i-ésima (todas las barras tienen anchura 1).\n\n"
@@ -1806,7 +1806,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Contar Bits Encendidos",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Dado un entero no negativo n, devuelve el número de bits 1 en su representación "
             "binaria. Esta operación se conoce como «popcount» o «Hamming weight».\n\n"
@@ -1856,7 +1856,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Ventana Deslizante Máxima",
-        "difficulty": "Normal", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 1200, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums y un entero k, devuelve el máximo de cada ventana "
             "deslizante de tamaño k que se desplaza de izquierda a derecha.\n\n"
@@ -1910,7 +1910,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Partición en Subconjuntos Iguales",
-        "difficulty": "Difícil", "category": "Programación Dinámica", "total_solvers": 0,
+        "difficulty": 1600, "category": "Programación Dinámica", "total_solvers": 0,
         "description": (
             "Dado un array de enteros positivos nums, determina si es posible particionarlo "
             "en exactamente dos subconjuntos no vacíos tal que la suma de ambos sea igual.\n\n"
@@ -1964,7 +1964,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Exponenciación Modular",
-        "difficulty": "Fácil", "category": "Matemáticas", "total_solvers": 0,
+        "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
         "description": (
             "Calcula (base ^ exp) % mod de forma eficiente.\n\n"
             "La exponenciación modular es una operación fundamental en criptografía (RSA, "
@@ -2022,7 +2022,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Número de Islas",
-        "difficulty": "Normal", "category": "Grafos", "total_solvers": 0,
+        "difficulty": 1200, "category": "Grafos", "total_solvers": 0,
         "description": (
             "Se te da una cuadrícula de m × n que representa un mapa donde '1' es tierra y "
             "'0' es agua. Cuenta el número de islas.\n\n"
@@ -2076,7 +2076,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Ventana Mínima que Contiene Subcadena",
-        "difficulty": "Difícil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 1600, "category": "Strings", "total_solvers": 0,
         "description": (
             "Dadas dos cadenas s y t, devuelve la subcadena más corta de s que contenga "
             "todos los caracteres de t (incluyendo repetidos). Si no existe tal subcadena, "
@@ -2130,7 +2130,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Equilibrio de Array",
-        "difficulty": "Fácil", "category": "Arrays", "total_solvers": 0,
+        "difficulty": 800, "category": "Arrays", "total_solvers": 0,
         "description": (
             "Dado un array de enteros nums, encuentra el índice de equilibrio (pivot index). "
             "El índice de equilibrio es aquel en el que la suma de todos los elementos a su "
@@ -2183,7 +2183,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Decodificación de Mensajes",
-        "difficulty": "Normal", "category": "Programación Dinámica", "total_solvers": 0,
+        "difficulty": 1200, "category": "Programación Dinámica", "total_solvers": 0,
         "description": (
             "Un mensaje codificado se ha cifrado mediante el siguiente esquema:\n"
             "  'A' → 1\n"
@@ -2243,7 +2243,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Palabras Encadenadas",
-        "difficulty": "Difícil", "category": "Grafos", "total_solvers": 0,
+        "difficulty": 1600, "category": "Grafos", "total_solvers": 0,
         "description": (
             "Dado un diccionario de palabras y dos palabras beginWord y endWord, "
             "encuentra la longitud de la secuencia de transformación más corta de beginWord "
@@ -2299,7 +2299,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Números Romanos a Enteros",
-        "difficulty": "Fácil", "category": "Strings", "total_solvers": 0,
+        "difficulty": 800, "category": "Strings", "total_solvers": 0,
         "description": (
             "Los números romanos se representan con siete símbolos:\n"
             "  I=1, V=5, X=10, L=50, C=100, D=500, M=1000\n\n"
@@ -2352,7 +2352,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Suma Máxima de Camino en Árbol Binario",
-        "difficulty": "Normal", "category": "Programación Dinámica", "total_solvers": 0,
+        "difficulty": 1200, "category": "Programación Dinámica", "total_solvers": 0,
         "description": (
             "Se te da un árbol binario representado como array en nivel BFS (valor -1001 indica "
             "nodo nulo). Encuentra la suma máxima de cualquier camino dentro del árbol.\n\n"
@@ -2410,7 +2410,7 @@ EXERCISES_SEED = [
     # ══════════════════════════════════════════
     {
         "title": "Expresión Aritmética con Paréntesis Anidados",
-        "difficulty": "Difícil", "category": "Stack", "total_solvers": 0,
+        "difficulty": 1600, "category": "Stack", "total_solvers": 0,
         "description": (
             "Dada una cadena que representa una expresión aritmética con sumas, restas, "
             "multiplicaciones, divisiones (enteras, truncadas hacia cero) y paréntesis "
@@ -2461,7 +2461,7 @@ EXERCISES_SEED = [
     },
     {
     "title": "Conectividad Dinámica Offline con Eliminaciones",
-    "difficulty": "Muy Difícil", "category": "DSU + Segment Tree + Offline Queries", "total_solvers": 0,
+    "difficulty": 2400, "category": "DSU + Segment Tree + Offline Queries", "total_solvers": 0,
     "description": (
         "Tienes un grafo no dirigido inicialmente vacío con n nodos numerados de 0 a n-1.\n\n"
         "Debes procesar una secuencia de operaciones de tres tipos:\n\n"
@@ -2534,7 +2534,7 @@ EXERCISES_SEED = [
 },
 {
     "title": "K-ésimo Número en Subarrays Dinámicos",
-    "difficulty": "Insane", "category": "Persistent Segment Tree", "total_solvers": 0,
+    "difficulty": 3000, "category": "Persistent Segment Tree", "total_solvers": 0,
     "description": (
         "Dado un array inicial nums de tamaño n, debes procesar múltiples queries del tipo:\n\n"
         "  query(l, r, k): devuelve el k-ésimo número más pequeño en el subarray nums[l..r]\n\n"
@@ -2597,7 +2597,7 @@ EXERCISES_SEED = [
 },
 {
     "title": "Consultas Dinámicas en Árbol con Versionado Temporal",
-    "difficulty": "Abyssal", "category": "HLD + Persistent Segment Tree + Lazy Propagation", "total_solvers": 0,
+    "difficulty": 3500, "category": "HLD + Persistent Segment Tree + Lazy Propagation", "total_solvers": 0,
     "description": (
         "Se te da un árbol con n nodos (0 a n-1), inicialmente con valor 0 en cada nodo.\n\n"
         "Debes procesar q operaciones de tres tipos:\n\n"
