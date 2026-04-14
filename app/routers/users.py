@@ -101,7 +101,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
 
 
 @router.get("/api/user/check-username/{username}")
-async def check_username_availability(username: str, email: str = Depends(get_current_user)):
+async def check_username_availability(username: str):
     existing = await database.db.users.find_one({"username": username})
     return {"available": existing is None}
 
