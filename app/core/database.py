@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import MONGODB_URI, DB_NAME
@@ -45,6 +46,32 @@ async def startup_db_client():
         else:
             updated += 1
     logger.info(f"Exercises synced: {inserted} inserted, {updated} updated.")
+
+    # Seed example news (only once — skip if any news already exists)
+    if await db.news.count_documents({}) == 0:
+        example_news = {
+            "title": "Los Equipos llegan a Codexar",
+            "subtitle": "Una nueva era de competición colaborativa está por comenzar",
+            "creator": "Codexar",
+            "body": (
+                "Desde el equipo de desarrollo de Codexar queremos anunciar que muy pronto "
+                "estaremos lanzando el sistema de Equipos. Podrás crear o unirte a un equipo, "
+                "competir de forma grupal, acumular puntos colectivos y escalar en una tabla de "
+                "clasificación por equipos separada del ranking individual.\n\n"
+                "Esto abre la puerta a torneos entre escuadras, estrategias coordinadas y una "
+                "dimensión completamente nueva dentro de la plataforma.\n\n"
+                "Shoutout especial a @ABGS, uno de los primeros en creer en este proyecto desde "
+                "el día cero — ¡prepárate para liderar tu equipo cuando esto salga! "
+                "¿Ya tienes nombre pensado? Déjalo en los comentarios... cuando los comentarios "
+                "también lleguen 😄\n\n"
+                "Estad atentos. El anuncio oficial está cerca."
+            ),
+            "mentions": ["ABGS"],
+            "likes": [],
+            "created_at": datetime.utcnow(),
+        }
+        await db.news.insert_one(example_news)
+        logger.info("Seeded example news document.")
 
 
 async def shutdown_db_client():
