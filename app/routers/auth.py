@@ -148,6 +148,12 @@ async def login_user(user: UserLogin):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if db_user.get("is_banned", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta ha sido suspendida. Contacta con el soporte si crees que es un error.",
+        )
+
     access_token = create_access_token(
         data={"sub": db_user["email"]},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),

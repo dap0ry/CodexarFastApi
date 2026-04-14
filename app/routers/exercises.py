@@ -1,15 +1,40 @@
 import ast
+from datetime import datetime
+from typing import List
+
 import httpx
 
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 
 import app.core.database as database
 from app.core.security import get_current_user
+from app.core.roles import require_moderator
 from app.core.compare import compare_result, compare_config_from_dict
 from app.core.config import JUDGE0_KEY
 from app.models.exercise import SolveRequest
 
 router = APIRouter()
+
+
+# ── Exercise creation schema ──────────────────────────────────────────────────
+
+class TestCaseIn(BaseModel):
+    input: str
+    expected_output: str
+
+
+class ExerciseCreate(BaseModel):
+    title: str
+    description: str
+    difficulty: str   # Fácil | Normal | Difícil | Muy Difícil | Insane | Abyssal
+    category: str
+    test_cases: List[TestCaseIn]
+    stub_python: str = ""
+    stub_cpp:    str = ""
+    stub_java:   str = ""
+    stub_go:     str = ""
+    stub_csharp: str = ""
 
 # ─────────────────────────────────────────────
 #  Judge0 config
@@ -636,3 +661,36 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
         return {"correct": True, "message": "¡Ejercicio guardado correctamente! ✓"}
 
     return {"correct": True, "message": "¡Todos los casos de prueba superados! Puedes guardar tu solución."}
+
+
+# ─────────────────────────────────────────────
+#  Create exercise (moderator / admin)
+# ─────────────────────────────────────────────
+
+@router.post("/api/exercises/create")
+async def create_exercise(body: ExerciseCreate, creator: dict = Depends(require_moderator)):
+    VALID_DIFFICULTIES = {"Fácil", "Normal", "Difícil", "Muy Difícil", "Insane", "Abyssal"}
+    if body.difficulty not in VALID_DIFFICULTIES:
+        raise HTTPException(status_code=400, detail=f"Dificultad inválida. Opciones: {VALID_DIFFICULTIES}")
+    if len(body.test_cases) < 1:
+        raise HTTPException(status_code=400, detail="Se requiere al menos un caso de prueba")
+
+    doc = {
+        "title":       body.title.strip(),
+        "description": body.description.strip(),
+        "difficulty":  body.difficulty,
+        "category":    body.category.strip(),
+        "test_cases":  [{"input": tc.input.strip(), "expected_output": tc.expected_output.strip()} for tc in body.test_cases],
+        "stub": {
+            "python": body.stub_python,
+            "cpp":    body.stub_cpp,
+            "java":   body.stub_java,
+            "go":     body.stub_go,
+            "csharp": body.stub_csharp,
+        },
+        "created_by":  creator.get("username", ""),
+        "created_at":  datetime.utcnow(),
+        "solvers":     [],
+    }
+    result = await database.db.exercises.insert_one(doc)
+    return {"message": "Ejercicio creado correctamente", "id": str(result.inserted_id)}
