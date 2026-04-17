@@ -127,6 +127,38 @@ async def my_team(email: str = Depends(get_current_user)):
     return team
 
 
+@router.get("/api/teams/public/{team_name}")
+async def get_team_public(team_name: str):
+    team = await database.db.teams.find_one({"name": team_name})
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    team = _oid(team)
+    team.pop("invites", None)
+
+    members_info = []
+    for m in team.get("members", []):
+        u = await database.db.users.find_one({"username": m})
+        if u:
+            members_info.append({
+                "username": m,
+                "elo":      u.get("elo", 0),
+                "solved":   len(u.get("solved_exercises", [])),
+                "avatar":   u.get("avatar"),
+                "is_owner": m == team.get("owner"),
+            })
+
+    members_info.sort(key=lambda x: x["elo"], reverse=True)
+    team["members_info"] = members_info
+    team["member_count"] = len(members_info)
+    team["total_solved"] = sum(m["solved"] for m in members_info)
+    team["highest_elo"] = members_info[0]["elo"] if members_info else 0
+    if members_info:
+        team["avg_elo"] = round(sum(m["elo"] for m in members_info) / len(members_info))
+    else:
+        team["avg_elo"] = 0
+    return team
+
+
 @router.get("/api/teams/{team_id}")
 async def get_team(team_id: str, email: str = Depends(get_current_user)):
     from bson import ObjectId
