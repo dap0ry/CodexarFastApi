@@ -75,6 +75,18 @@ async def set_role(username: str, body: SetRoleBody, admin: dict = Depends(requi
     return {"message": f"Rol de {username} cambiado a {body.role}"}
 
 
+@router.delete("/news/{news_id}")
+async def delete_news(news_id: str, admin: dict = Depends(require_admin)):
+    try:
+        oid = ObjectId(news_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID de noticia inválido")
+    result = await database.db.news.delete_one({"_id": oid})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Noticia no encontrada")
+    return {"message": "Noticia eliminada"}
+
+
 @router.delete("/exercises/{exercise_id}")
 async def delete_exercise(exercise_id: str, admin: dict = Depends(require_admin)):
     try:
