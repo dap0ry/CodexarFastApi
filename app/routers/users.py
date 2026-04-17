@@ -36,6 +36,10 @@ async def _get_upload_limits(email: str):
     """Returns (allowed_types, max_bytes) based on the user's subscription plan."""
     user = await database.db.users.find_one({"email": email}, {"subscription_plan": 1})
     plan = (user or {}).get("subscription_plan")
+    if plan not in _PREMIUM_PLANS:
+        sub_doc = await database.db.subscriptions.find_one({"email": email}, {"plan": 1, "status": 1})
+        if sub_doc and sub_doc.get("status") in ("active", "trialing") and sub_doc.get("plan") in ("plus", "max"):
+            plan = sub_doc.get("plan")
     if plan in _PREMIUM_PLANS:
         return _ALLOWED_IMAGE_TYPES, _SUB_UPLOAD_BYTES
     return _FREE_IMAGE_TYPES, _MAX_UPLOAD_BYTES
@@ -505,6 +509,11 @@ async def upload_profile_background(
     import io
     user = await database.db.users.find_one({"email": email}, {"subscription_plan": 1})
     plan = (user or {}).get("subscription_plan")
+    # Also check subscriptions collection as fallback
+    if plan not in _PREMIUM_PLANS:
+        sub_doc = await database.db.subscriptions.find_one({"email": email}, {"plan": 1, "status": 1})
+        if sub_doc and sub_doc.get("status") in ("active", "trialing") and sub_doc.get("plan") in ("plus", "max"):
+            plan = sub_doc.get("plan")
     is_premium = plan in _PREMIUM_PLANS
 
     if bg.content_type == "video/mp4":
