@@ -9,3 +9,4 @@ python-dotenv
 cloudinary
 python-multipart
 httpx
+stripe

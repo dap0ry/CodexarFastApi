@@ -14,8 +14,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,20}$')
+_FREE_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-_MAX_UPLOAD_BYTES = 3 * 1024 * 1024  # 3 MB
+_MAX_UPLOAD_BYTES = 3 * 1024 * 1024   # 3 MB free
+_SUB_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB Plus/Max
+
+_PREMIUM_PLANS = {"plus", "max", "plus_boosted"}
 
 
 def _validate_username(username: str):
@@ -26,14 +30,29 @@ def _validate_username(username: str):
         )
 
 
-async def _validate_image(pfp: UploadFile):
-    if pfp.content_type not in _ALLOWED_IMAGE_TYPES:
-        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
-    contents = await pfp.read()
-    if len(contents) > _MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=400, detail="La imagen no puede superar los 3 MB.")
-    # Reset file pointer for subsequent read by cloudinary
+async def _get_upload_limits(email: str):
+    """Returns (allowed_types, max_bytes) based on the user's subscription plan."""
+    user = await database.db.users.find_one({"email": email}, {"subscription_plan": 1})
+    plan = (user or {}).get("subscription_plan")
+    if plan in _PREMIUM_PLANS:
+        return _ALLOWED_IMAGE_TYPES, _SUB_UPLOAD_BYTES
+    return _FREE_IMAGE_TYPES, _MAX_UPLOAD_BYTES
+
+
+async def _validate_image(pfp: UploadFile, email: str = None):
     import io
+    allowed_types, max_bytes = (
+        await _get_upload_limits(email) if email
+        else (_FREE_IMAGE_TYPES, _MAX_UPLOAD_BYTES)
+    )
+    if pfp.content_type not in allowed_types:
+        if pfp.content_type == "image/gif":
+            raise HTTPException(status_code=400, detail="Los GIFs solo están disponibles para suscriptores Plus y Max.")
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP (o GIF con Plus/Max).")
+    contents = await pfp.read()
+    if len(contents) > max_bytes:
+        mb = max_bytes // (1024 * 1024)
+        raise HTTPException(status_code=400, detail=f"La imagen no puede superar los {mb} MB.")
     pfp.file = io.BytesIO(contents)
 
 
@@ -94,12 +113,13 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "matches_played": user.get("matches_played", 0),
         "coins": user.get("coins", 0),
         "equipped_frame": user.get("equipped_frame"),
-        "profile_background": user.get("profile_background"),
-        "profile_banner": user.get("profile_banner"),
-        "social_links": user.get("social_links", {}),
-        "purchased_items": user.get("purchased_items", []),
-        "solved_count": len(user.get("solved_exercises", [])),
-        "lang_stats": user.get("lang_stats", {}),
+        "profile_background":  user.get("profile_background"),
+        "profile_banner":      user.get("profile_banner"),
+        "social_links":        user.get("social_links", {}),
+        "purchased_items":     user.get("purchased_items", []),
+        "solved_count":        len(user.get("solved_exercises", [])),
+        "lang_stats":          user.get("lang_stats", {}),
+        "subscription_plan":   user.get("subscription_plan"),
     }
 
 
@@ -225,7 +245,7 @@ async def update_user_profile(
 
     # 5. Network Matrix Cloudinary Uplink
     if pfp and pfp.filename:
-        await _validate_image(pfp)
+        await _validate_image(pfp, email)
         try:
             safe_id = email.replace("@", "_at_").replace(".", "_")
             result = cloudinary.uploader.upload(
@@ -444,10 +464,11 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         "hardest_exercise": hardest_exercise,
         "equipped_achievements": equipped_details,
         "equipped_frame": user.get("equipped_frame"),
-        "profile_background": user.get("profile_background"),
-        "profile_banner": user.get("profile_banner"),
-        "social_links": user.get("social_links", {}),
-        "lang_stats": user.get("lang_stats", {}),
+        "profile_background":  user.get("profile_background"),
+        "profile_banner":      user.get("profile_banner"),
+        "social_links":        user.get("social_links", {}),
+        "lang_stats":          user.get("lang_stats", {}),
+        "subscription_plan":   user.get("subscription_plan"),
         "friendship_status": {
             "is_self": is_self,
             "is_friend": is_friend,
@@ -479,7 +500,7 @@ async def upload_profile_background(
     bg: UploadFile = File(...),
     email: str = Depends(get_current_user)
 ):
-    await _validate_image(bg)
+    await _validate_image(bg, email)
     try:
         safe_id = email.replace("@", "_at_").replace(".", "_") + "_bg"
         result = cloudinary.uploader.upload(
@@ -505,12 +526,16 @@ async def upload_profile_banner(
     banner: UploadFile = File(...),
     email: str = Depends(get_current_user)
 ):
-    if banner.content_type not in _ALLOWED_IMAGE_TYPES:
-        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
     import io
+    allowed_types, max_bytes = await _get_upload_limits(email)
+    if banner.content_type not in allowed_types:
+        if banner.content_type == "image/gif":
+            raise HTTPException(status_code=400, detail="Los GIFs solo están disponibles para suscriptores Plus y Max.")
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP (o GIF con Plus/Max).")
     contents = await banner.read()
-    if len(contents) > 2 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="El banner no puede superar los 2 MB.")
+    if len(contents) > max_bytes:
+        mb = max_bytes // (1024 * 1024)
+        raise HTTPException(status_code=400, detail=f"El banner no puede superar los {mb} MB.")
     banner.file = io.BytesIO(contents)
     try:
         safe_id = email.replace("@", "_at_").replace(".", "_") + "_banner"

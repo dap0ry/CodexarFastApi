@@ -15,7 +15,12 @@ CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
 BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "noreply@codexar.dev")
 BREVO_SENDER_NAME = "Codexar"
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
+ALLOWED_ORIGINS        = os.getenv("ALLOWED_ORIGINS", "*")
+STRIPE_SECRET_KEY      = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PLUS_PRICE_ID   = os.getenv("STRIPE_PLUS_PRICE_ID", "")
+STRIPE_MAX_PRICE_ID    = os.getenv("STRIPE_MAX_PRICE_ID", "")
 
 # Judge0 code execution — free public instance (no key needed for dev)
 # For production: set JUDGE0_KEY to your RapidAPI key
