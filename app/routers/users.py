@@ -395,8 +395,9 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         oids = [ObjectId(i) for i in solved_ids if ObjectId.is_valid(i)]
         async for ex in database.db.exercises.find({"_id": {"$in": oids}}, {"title": 1, "difficulty": 1}):
             d = ex.get("difficulty", "Normal")
-            if d in solved_by_diff:
-                solved_by_diff[d] += 1
+            if d not in DIFF_ORDER:
+                d = "Normal"
+            solved_by_diff[d] += 1
             if hardest_exercise is None or DIFF_ORDER.index(d) > DIFF_ORDER.index(hardest_exercise["difficulty"]):
                 hardest_exercise = {"title": ex["title"], "difficulty": d}
 
@@ -407,10 +408,12 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
 
     # Friendship status
     viewer = await database.db.users.find_one({"email": email})
-    is_self = viewer["email"] == user["email"]
-    is_friend = user["email"] in viewer.get("friends", [])
-    request_sent = user["email"] in viewer.get("friend_requests_sent", [])
-    request_received = user["email"] in viewer.get("friend_requests_received", [])
+    viewer_email = viewer.get("email", "") if viewer else ""
+    user_email = user.get("email", "")
+    is_self = viewer_email == user_email and bool(user_email)
+    is_friend = user_email in (viewer.get("friends", []) if viewer else [])
+    request_sent = user_email in (viewer.get("friend_requests_sent", []) if viewer else [])
+    request_received = user_email in (viewer.get("friend_requests_received", []) if viewer else [])
 
     return {
         "username": user.get("username"),
