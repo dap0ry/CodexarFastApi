@@ -3,14 +3,20 @@ teams.py — Codexar Teams system
 Teams: create, join, leave, manage members (max 10).
 """
 
+import io
+import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+import cloudinary.uploader
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel, validator
 
 import app.core.database as database
 from app.core.security import get_current_user
+
+logger = logging.getLogger(__name__)
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 router = APIRouter()
 
@@ -117,12 +123,12 @@ async def my_team(email: str = Depends(get_current_user)):
                 "is_owner": m == team.get("owner"),
             })
     team["members_info"] = members_info
-    # Avg stats
+    team["total_solved"] = sum(m["solved"] for m in members_info)
     if members_info:
-        team["avg_elo"] = round(sum(m["elo"] for m in members_info) / len(members_info))
+        team["avg_elo"]    = round(sum(m["elo"] for m in members_info) / len(members_info))
         team["avg_solved"] = round(sum(m["solved"] for m in members_info) / len(members_info))
     else:
-        team["avg_elo"] = 0
+        team["avg_elo"]    = 0
         team["avg_solved"] = 0
     return team
 
@@ -148,10 +154,11 @@ async def get_team_public(team_name: str):
             })
 
     members_info.sort(key=lambda x: x["elo"], reverse=True)
-    team["members_info"] = members_info
-    team["member_count"] = len(members_info)
-    team["total_solved"] = sum(m["solved"] for m in members_info)
-    team["highest_elo"] = members_info[0]["elo"] if members_info else 0
+    team["members_info"]  = members_info
+    team["member_count"]  = len(members_info)
+    team["total_solved"]  = sum(m["solved"] for m in members_info)
+    team["highest_elo"]   = members_info[0]["elo"] if members_info else 0
+    team["background_url"] = team.get("background_url")
     if members_info:
         team["avg_elo"] = round(sum(m["elo"] for m in members_info) / len(members_info))
     else:
@@ -354,6 +361,78 @@ async def update_team(team_id: str, body: TeamCreate, email: str = Depends(get_c
         "photo_url":   body.photo_url,
     }})
     return {"message": "Equipo actualizado."}
+
+
+@router.post("/api/teams/{team_id}/upload-photo")
+async def upload_team_photo(team_id: str, photo: UploadFile = File(...), email: str = Depends(get_current_user)):
+    from bson import ObjectId
+    user = await _get_user(email)
+    username = user.get("username", "")
+    try:
+        oid = ObjectId(team_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    team = await database.db.teams.find_one({"_id": oid})
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    if team.get("owner") != username:
+        raise HTTPException(status_code=403, detail="Solo el capitán puede cambiar la foto")
+    if photo.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
+    contents = await photo.read()
+    if len(contents) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La foto no puede superar los 2 MB.")
+    photo.file = io.BytesIO(contents)
+    try:
+        result = cloudinary.uploader.upload(
+            photo.file,
+            folder="Codexar/TeamPhotos",
+            public_id=f"team_{team_id}_photo",
+            overwrite=True,
+            resource_type="auto"
+        )
+        url = result.get("secure_url")
+        await database.db.teams.update_one({"_id": oid}, {"$set": {"photo_url": url}})
+        return {"status": "success", "url": url}
+    except Exception as e:
+        logger.warning("Team photo upload error: %s", str(e))
+        raise HTTPException(status_code=500, detail="Error subiendo la foto del equipo")
+
+
+@router.post("/api/teams/{team_id}/upload-background")
+async def upload_team_background(team_id: str, bg: UploadFile = File(...), email: str = Depends(get_current_user)):
+    from bson import ObjectId
+    user = await _get_user(email)
+    username = user.get("username", "")
+    try:
+        oid = ObjectId(team_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    team = await database.db.teams.find_one({"_id": oid})
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    if team.get("owner") != username:
+        raise HTTPException(status_code=403, detail="Solo el capitán puede cambiar el fondo")
+    if bg.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
+    contents = await bg.read()
+    if len(contents) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El fondo no puede superar los 3 MB.")
+    bg.file = io.BytesIO(contents)
+    try:
+        result = cloudinary.uploader.upload(
+            bg.file,
+            folder="Codexar/TeamBackgrounds",
+            public_id=f"team_{team_id}_bg",
+            overwrite=True,
+            resource_type="auto"
+        )
+        url = result.get("secure_url")
+        await database.db.teams.update_one({"_id": oid}, {"$set": {"background_url": url}})
+        return {"status": "success", "url": url}
+    except Exception as e:
+        logger.warning("Team bg upload error: %s", str(e))
+        raise HTTPException(status_code=500, detail="Error subiendo el fondo del equipo")
 
 
 @router.delete("/api/teams/{team_id}/members/{username}")
