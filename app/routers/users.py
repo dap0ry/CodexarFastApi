@@ -16,8 +16,10 @@ router = APIRouter()
 _USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,20}$')
 _FREE_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-_MAX_UPLOAD_BYTES = 3 * 1024 * 1024   # 3 MB free
-_SUB_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB Plus/Max
+_ALLOWED_BG_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4"}
+_MAX_UPLOAD_BYTES = 3 * 1024 * 1024    # 3 MB free
+_SUB_UPLOAD_BYTES = 10 * 1024 * 1024   # 10 MB Plus/Max
+_BG_VIDEO_MAX_BYTES = 10 * 1024 * 1024 # 10 MB video
 
 _PREMIUM_PLANS = {"plus", "max", "plus_boosted"}
 
@@ -500,7 +502,30 @@ async def upload_profile_background(
     bg: UploadFile = File(...),
     email: str = Depends(get_current_user)
 ):
-    await _validate_image(bg, email)
+    import io
+    user = await database.db.users.find_one({"email": email}, {"subscription_plan": 1})
+    plan = (user or {}).get("subscription_plan")
+    is_premium = plan in _PREMIUM_PLANS
+
+    if bg.content_type == "video/mp4":
+        if not is_premium:
+            raise HTTPException(status_code=400, detail="Los fondos de video solo están disponibles para suscriptores Plus y Max.")
+        contents = await bg.read()
+        if len(contents) > _BG_VIDEO_MAX_BYTES:
+            raise HTTPException(status_code=400, detail="El video no puede superar los 10 MB.")
+        bg.file = io.BytesIO(contents)
+    else:
+        allowed = _ALLOWED_BG_TYPES if is_premium else _FREE_IMAGE_TYPES
+        if bg.content_type not in allowed:
+            if bg.content_type == "image/gif":
+                raise HTTPException(status_code=400, detail="Los GIFs solo están disponibles para suscriptores Plus y Max.")
+            raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP (o GIF/MP4 con Plus/Max).")
+        contents = await bg.read()
+        max_bytes = _SUB_UPLOAD_BYTES if is_premium else _MAX_UPLOAD_BYTES
+        if len(contents) > max_bytes:
+            raise HTTPException(status_code=400, detail=f"La imagen no puede superar los {max_bytes//(1024*1024)} MB.")
+        bg.file = io.BytesIO(contents)
+
     try:
         safe_id = email.replace("@", "_at_").replace(".", "_") + "_bg"
         result = cloudinary.uploader.upload(
