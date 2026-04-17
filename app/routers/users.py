@@ -354,6 +354,43 @@ async def get_leaderboard(email: str = Depends(get_current_user)):
     return users_list
 
 
+@router.get("/api/leaderboard/all")
+async def get_leaderboard_all(
+    skip: int = 0,
+    limit: int = 10,
+    email: str = Depends(get_current_user)
+):
+    limit = min(limit, 50)
+    cursor = database.db.users.find(
+        {"elo": {"$exists": True}, "is_onboarded": True},
+        {"username": 1, "avatar": 1, "elo": 1, "solved_exercises": 1}
+    ).sort("elo", -1).skip(skip).limit(limit)
+
+    def _rank_name(elo):
+        if elo <= 75:   sub = min(3, max(1, (elo // 26) + 1));           return f"Bronce {['I','II','III'][sub-1]}"
+        if elo <= 200:  sub = min(3, max(1, ((elo - 76) // 75) + 1));    return f"Plata {['I','II','III'][sub-1]}"
+        if elo <= 500:  sub = min(3, max(1, ((elo - 301) // 167) + 1));  return f"Oro {['I','II','III'][sub-1]}"
+        if elo <= 900:  sub = min(3, max(1, ((elo - 801) // 167) + 1));  return f"Platino {['I','II','III'][sub-1]}"
+        if elo <= 1400: sub = min(3, max(1, ((elo - 801) // 167) + 1));  return f"Diamante {['I','II','III'][sub-1]}"
+        if elo <= 2000: sub = min(3, max(1, ((elo - 1301) // 234) + 1)); return f"Elite {['I','II','III'][sub-1]}"
+        if elo <= 3000: sub = min(3, max(1, ((elo - 801) // 167) + 1));  return f"Campeon {['I','II','III'][sub-1]}"
+        return "Voidborn"
+
+    result = []
+    async for u in cursor:
+        elo = u.get("elo", 0)
+        result.append({
+            "username":  u.get("username", "?"),
+            "avatar":    u.get("avatar"),
+            "elo":       elo,
+            "solved":    len(u.get("solved_exercises", [])),
+            "rank_name": _rank_name(elo),
+        })
+
+    total = await database.db.users.count_documents({"elo": {"$exists": True}, "is_onboarded": True})
+    return {"players": result, "total": total, "skip": skip}
+
+
 @router.post("/api/user/heartbeat")
 async def heartbeat(email: str = Depends(get_current_user)):
     await database.db.users.update_one(
