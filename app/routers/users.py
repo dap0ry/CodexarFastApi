@@ -591,6 +591,18 @@ async def upload_profile_banner(
         raise HTTPException(status_code=500, detail="Error subiendo el banner")
 
 
+@router.delete("/api/user/delete-banner")
+async def delete_profile_banner(email: str = Depends(get_current_user)):
+    await database.db.users.update_one({"email": email}, {"$unset": {"profile_banner": ""}})
+    return {"status": "success"}
+
+
+@router.delete("/api/user/delete-background")
+async def delete_profile_background(email: str = Depends(get_current_user)):
+    await database.db.users.update_one({"email": email}, {"$unset": {"profile_background": ""}})
+    return {"status": "success"}
+
+
 class SocialLinksUpdate(BaseModel):
     github:     Optional[str] = None
     linkedin:   Optional[str] = None
