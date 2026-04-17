@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Optional, List
 
 import cloudinary.uploader
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Body
+from pydantic import BaseModel
 
 import app.core.database as database
 from app.core.security import get_current_user, verify_password, get_password_hash
@@ -95,6 +96,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "equipped_frame": user.get("equipped_frame"),
         "profile_background": user.get("profile_background"),
         "profile_banner": user.get("profile_banner"),
+        "social_links": user.get("social_links", {}),
         "purchased_items": user.get("purchased_items", []),
         "solved_count": len(user.get("solved_exercises", [])),
         "lang_stats": user.get("lang_stats", {}),
@@ -444,6 +446,7 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         "equipped_frame": user.get("equipped_frame"),
         "profile_background": user.get("profile_background"),
         "profile_banner": user.get("profile_banner"),
+        "social_links": user.get("social_links", {}),
         "lang_stats": user.get("lang_stats", {}),
         "friendship_status": {
             "is_self": is_self,
@@ -527,3 +530,25 @@ async def upload_profile_banner(
     except Exception as e:
         logger.warning("Banner upload error: %s", str(e))
         raise HTTPException(status_code=500, detail="Error subiendo el banner")
+
+
+class SocialLinksUpdate(BaseModel):
+    github:     Optional[str] = None
+    linkedin:   Optional[str] = None
+    codeforces: Optional[str] = None
+    instagram:  Optional[str] = None
+    tiktok:     Optional[str] = None
+
+
+@router.post("/api/user/update-socials")
+async def update_social_links(body: SocialLinksUpdate, email: str = Depends(get_current_user)):
+    social_links = {}
+    for key, val in body.dict().items():
+        cleaned = (val or "").strip()
+        if cleaned:
+            social_links[key] = cleaned
+    await database.db.users.update_one(
+        {"email": email},
+        {"$set": {"social_links": social_links}}
+    )
+    return {"status": "success"}
