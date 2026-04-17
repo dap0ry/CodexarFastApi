@@ -14,7 +14,7 @@ router = APIRouter()
 
 _USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,20}$')
 _ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-_MAX_UPLOAD_BYTES = 1 * 1024 * 1024  # 1 MB
+_MAX_UPLOAD_BYTES = 3 * 1024 * 1024  # 3 MB
 
 
 def _validate_username(username: str):
@@ -30,7 +30,7 @@ async def _validate_image(pfp: UploadFile):
         raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
     contents = await pfp.read()
     if len(contents) > _MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=400, detail="La imagen no puede superar los 5 MB.")
+        raise HTTPException(status_code=400, detail="La imagen no puede superar los 3 MB.")
     # Reset file pointer for subsequent read by cloudinary
     import io
     pfp.file = io.BytesIO(contents)
