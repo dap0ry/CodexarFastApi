@@ -94,6 +94,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "coins": user.get("coins", 0),
         "equipped_frame": user.get("equipped_frame"),
         "profile_background": user.get("profile_background"),
+        "profile_banner": user.get("profile_banner"),
         "purchased_items": user.get("purchased_items", []),
         "solved_count": len(user.get("solved_exercises", [])),
         "lang_stats": user.get("lang_stats", {}),
@@ -442,6 +443,7 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         "equipped_achievements": equipped_details,
         "equipped_frame": user.get("equipped_frame"),
         "profile_background": user.get("profile_background"),
+        "profile_banner": user.get("profile_banner"),
         "lang_stats": user.get("lang_stats", {}),
         "friendship_status": {
             "is_self": is_self,
@@ -493,3 +495,35 @@ async def upload_profile_background(
     except Exception as e:
         logger.warning("Background upload error: %s", str(e))
         raise HTTPException(status_code=500, detail="Error subiendo el fondo de perfil")
+
+
+@router.post("/api/user/upload-banner")
+async def upload_profile_banner(
+    banner: UploadFile = File(...),
+    email: str = Depends(get_current_user)
+):
+    if banner.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
+    import io
+    contents = await banner.read()
+    if len(contents) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El banner no puede superar los 2 MB.")
+    banner.file = io.BytesIO(contents)
+    try:
+        safe_id = email.replace("@", "_at_").replace(".", "_") + "_banner"
+        result = cloudinary.uploader.upload(
+            banner.file,
+            folder="Codexar/ProfileBanners",
+            public_id=safe_id,
+            overwrite=True,
+            resource_type="auto"
+        )
+        banner_url = result.get("secure_url")
+        await database.db.users.update_one(
+            {"email": email},
+            {"$set": {"profile_banner": banner_url}}
+        )
+        return {"status": "success", "url": banner_url}
+    except Exception as e:
+        logger.warning("Banner upload error: %s", str(e))
+        raise HTTPException(status_code=500, detail="Error subiendo el banner")
