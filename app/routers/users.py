@@ -457,12 +457,21 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
     solved_by_diff = {d: 0 for d in DIFF_ORDER}
     hardest_exercise = None
     solved_ids = user.get("solved_exercises", [])
+
+    def _diff_label(d):
+        if isinstance(d, int):
+            if d < 1200:  return "Fácil"
+            if d < 1800:  return "Normal"
+            if d < 2400:  return "Difícil"
+            if d < 3000:  return "Muy Difícil"
+            if d < 3500:  return "Insane"
+            return "Abyssal"
+        return d if d in DIFF_ORDER else "Normal"
+
     if solved_ids:
         oids = [ObjectId(i) for i in solved_ids if ObjectId.is_valid(i)]
         async for ex in database.db.exercises.find({"_id": {"$in": oids}}, {"title": 1, "difficulty": 1}):
-            d = ex.get("difficulty", "Normal")
-            if d not in DIFF_ORDER:
-                d = "Normal"
+            d = _diff_label(ex.get("difficulty", "Normal"))
             solved_by_diff[d] += 1
             if hardest_exercise is None or DIFF_ORDER.index(d) > DIFF_ORDER.index(hardest_exercise["difficulty"]):
                 hardest_exercise = {"title": ex["title"], "difficulty": d}

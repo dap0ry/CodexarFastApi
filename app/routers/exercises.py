@@ -632,9 +632,16 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
     if result_ok and body.save:
         user = await database.db.users.find_one({"email": email})
         solved_ids = user.get("solved_exercises", []) if user else []
-        if exercise_id not in solved_ids:
+        already_solved = exercise_id in solved_ids
+
+        # Always update lang_stats when solved correctly (regardless of whether already solved)
+        await database.db.users.update_one(
+            {"email": email},
+            {"$inc": {f"lang_stats.{body.language}": 1}}
+        )
+
+        if not already_solved:
             difficulty = ex.get("difficulty", 1200)
-            # ELO-based rewards
             def _elo_reward(d):
                 if d < 1000:   return (1,  10)
                 if d < 1200:   return (2,  20)
@@ -652,7 +659,7 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
                 {"email": email},
                 {
                     "$addToSet": {"solved_exercises": exercise_id},
-                    "$inc": {"elo": elo_gain, "coins": coins_gain, f"lang_stats.{body.language}": 1}
+                    "$inc": {"elo": elo_gain, "coins": coins_gain}
                 }
             )
             ex_fresh = await database.db.exercises.find_one({"_id": oid})
