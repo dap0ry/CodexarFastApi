@@ -1,11 +1,21 @@
 import re
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
+
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
 
 class UserRegister(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def email_format(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Email inválido")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -18,7 +28,7 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -37,9 +47,9 @@ class OnboardData(BaseModel):
 
 
 class EmailVerifyRequest(BaseModel):
-    email: EmailStr
+    email: str
     code: str
 
 
 class ResendVerificationRequest(BaseModel):
-    email: EmailStr
+    email: str
