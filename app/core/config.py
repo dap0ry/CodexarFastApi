@@ -22,9 +22,10 @@ STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_PLUS_PRICE_ID   = os.getenv("STRIPE_PLUS_PRICE_ID", "")
 STRIPE_MAX_PRICE_ID    = os.getenv("STRIPE_MAX_PRICE_ID", "")
 
-# Judge0 code execution — free public instance (no key needed for dev)
-# For production: set JUDGE0_KEY to your RapidAPI key
-JUDGE0_KEY = os.getenv("JUDGE0_KEY", "")
+# Judge0 code execution
+# Priority: self-hosted (JUDGE0_SELF_URL) > RapidAPI (JUDGE0_KEY) > public CE
+JUDGE0_SELF_URL = os.getenv("JUDGE0_SELF_URL", "")  # e.g. http://host.docker.internal:2358
+JUDGE0_KEY      = os.getenv("JUDGE0_KEY", "")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days

@@ -11,7 +11,7 @@ import app.core.database as database
 from app.core.security import get_current_user
 from app.core.roles import require_moderator
 from app.core.compare import compare_result, compare_config_from_dict
-from app.core.config import JUDGE0_KEY
+from app.core.config import JUDGE0_KEY, JUDGE0_SELF_URL
 from app.models.exercise import SolveRequest
 
 router = APIRouter()
@@ -39,24 +39,24 @@ class ExerciseCreate(BaseModel):
 # ─────────────────────────────────────────────
 #  Judge0 config
 # ─────────────────────────────────────────────
-# Free public CE instance (no key, ~5 req/s limit) — fine for dev/small scale.
-# For production: add JUDGE0_KEY to .env (RapidAPI free tier = 50 req/day)
-_JUDGE0_PUBLIC_URL  = "https://ce.judge0.com/submissions"
-_JUDGE0_RAPID_URL   = "https://judge0-ce.p.rapidapi.com/submissions"
+# Priority: self-hosted (JUDGE0_SELF_URL) > RapidAPI (JUDGE0_KEY) > public CE
+_JUDGE0_PUBLIC_URL = "https://ce.judge0.com/submissions"
+_JUDGE0_RAPID_URL  = "https://judge0-ce.p.rapidapi.com/submissions"
 
-JUDGE0_URL = _JUDGE0_RAPID_URL if JUDGE0_KEY else _JUDGE0_PUBLIC_URL
-JUDGE0_HEADERS: dict = (
-    {"X-RapidAPI-Host": "judge0-ce.p.rapidapi.com", "X-RapidAPI-Key": JUDGE0_KEY}
-    if JUDGE0_KEY else {}
-)
+if JUDGE0_SELF_URL:
+    JUDGE0_URL     = f"{JUDGE0_SELF_URL.rstrip('/')}/submissions"
+    JUDGE0_HEADERS: dict = {}
+elif JUDGE0_KEY:
+    JUDGE0_URL     = _JUDGE0_RAPID_URL
+    JUDGE0_HEADERS = {"X-RapidAPI-Host": "judge0-ce.p.rapidapi.com", "X-RapidAPI-Key": JUDGE0_KEY}
+else:
+    JUDGE0_URL     = _JUDGE0_PUBLIC_URL
+    JUDGE0_HEADERS = {}
 
-# Judge0 CE language IDs
+# Supported languages (Python + C++ only for now)
 JUDGE0_LANG = {
     "Python": 71,   # Python 3.8.1
     "C++":    54,   # GCC 9.2.0
-    "Java":   62,   # OpenJDK 13.0.1
-    "Go":     60,   # Go 1.13.5
-    "C#":     51,   # Mono 6.6.0.161
 }
 
 
