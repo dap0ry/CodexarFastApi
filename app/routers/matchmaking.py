@@ -10,7 +10,7 @@ from jose import JWTError, jwt
 import app.core.database as database
 from app.core.config import JWT_SECRET, ALGORITHM
 from app.core.security import get_current_user
-from app.models.exercise import SubmitBatchRequest
+from app.models.exercise import MatchSubmitRequest
 
 router = APIRouter()
 
@@ -210,7 +210,9 @@ async def poll_match_state(match_id: str, email: str = Depends(get_current_user)
 
 
 @router.post("/api/matchmaking/match/{match_id}/submit")
-async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: str = Depends(get_current_user)):
+async def submit_match_solution(match_id: str, body: MatchSubmitRequest, email: str = Depends(get_current_user)):
+    from app.routers.exercises import _run_with_judge0, JUDGE0_LANG
+
     match = active_matches.get(match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Partida no encontrada")
@@ -221,11 +223,20 @@ async def submit_match_solution(match_id: str, body: SubmitBatchRequest, email: 
     if match["status"] != "ongoing":
         return {"status": match["status"], "winner": match["winner"]}
 
+    if body.language not in JUDGE0_LANG:
+        return {"status": "ongoing", "correct": False, "message": f"Lenguaje no soportado: {body.language}"}
+
     is_p1 = match["player1"]["email"] == email
 
-    passed_count = sum(1 for r in body.results if r.get("passed", False))
-    total_cases = len(match["exercise"]["test_cases"])
-    progress_pct = (passed_count / total_cases) * 100 if total_cases > 0 else 0
+    test_cases = match["exercise"].get("test_cases", [])
+    if not test_cases:
+        return {"status": "ongoing", "correct": False, "message": "El ejercicio no tiene casos de prueba"}
+
+    result = await _run_with_judge0(body.language, body.code, test_cases)
+    if not result["correct"]:
+        return {"status": "ongoing", "correct": False, **{k: v for k, v in result.items() if k != "correct"}}
+
+    progress_pct = 100
 
     if is_p1:
         match["p1_progress"] = progress_pct

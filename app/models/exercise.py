@@ -8,5 +8,6 @@ class SolveRequest(BaseModel):
     save: bool = False
 
 
-class SubmitBatchRequest(BaseModel):
-    results: List[dict]  # { passed: bool, error: str }
+class MatchSubmitRequest(BaseModel):
+    code: str
+    language: str
