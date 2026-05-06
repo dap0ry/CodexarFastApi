@@ -253,9 +253,27 @@ async def submit_match_solution(match_id: str, body: MatchSubmitRequest, email: 
 
         winner_email = email
         loser_email = match["player2"]["email"] if is_p1 else match["player1"]["email"]
-        is_friendly = match.get("match_type") == "friendly"
+        match_type = match.get("match_type")
+        is_friendly = match_type == "friendly"
+        is_tournament = match_type == "tournament"
 
-        if not is_friendly:
+        if is_tournament:
+            # Tournament: no ELO, only tournament-specific stats
+            await database.db.users.update_one(
+                {"email": winner_email},
+                {"$inc": {"tournament_match_wins": 1, "coins": 20, "matches_played": 1}}
+            )
+            await database.db.users.update_one(
+                {"email": loser_email},
+                {"$inc": {"tournament_match_losses": 1, "matches_played": 1}}
+            )
+            # Advance the bracket
+            t_id = match.get("tournament_id")
+            s_id = match.get("slot_id")
+            if t_id and s_id:
+                from app.routers.tournaments import advance_bracket
+                asyncio.create_task(advance_bracket(t_id, s_id, winner_email))
+        elif not is_friendly:
             winner_inc = {"elo": 25, "win_streak": 1, "wins": 1, "matches_played": 1, "coins": 30, "ranked_wins": 1}
             await database.db.users.update_one({"email": winner_email}, {"$inc": winner_inc})
 

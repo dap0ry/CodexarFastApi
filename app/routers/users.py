@@ -126,6 +126,10 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "solved_count":        len(user.get("solved_exercises", [])),
         "lang_stats":          user.get("lang_stats", {}),
         "subscription_plan":   user.get("subscription_plan"),
+        "tournaments_joined":      user.get("tournaments_joined", 0),
+        "tournament_wins":         user.get("tournament_wins", 0),
+        "tournament_match_wins":   user.get("tournament_match_wins", 0),
+        "tournament_match_losses": user.get("tournament_match_losses", 0),
     }
 
 
