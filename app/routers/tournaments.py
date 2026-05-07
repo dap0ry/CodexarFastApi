@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Optional
 
 import cloudinary.uploader
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, WebSocket, WebSocketDisconnect, Query
 
 import app.core.database as database
 from app.core.security import get_current_user
@@ -21,6 +21,15 @@ router = APIRouter()
 
 # In-memory slot states: "tournament_id:slot_id" → slot_state dict
 tournament_slots: dict = {}
+
+# WebSocket connections per slot: "tid:sid" → {"p1": ws|None, "p2": ws|None}
+tournament_ws_connections: dict = {}
+
+# Events fired when a pending slot becomes ready: "tid:sid" → asyncio.Event
+tournament_slot_events: dict = {}
+
+# Locks to prevent double match creation: "tid:sid" → asyncio.Lock
+tournament_match_locks: dict = {}
 
 TBD = "__TBD__"
 BYE = "__BYE__"
@@ -185,6 +194,9 @@ async def advance_bracket(tournament_id: str, slot_id: str, winner_email: str):
             "event": asyncio.Event(),
         }
         asyncio.create_task(_slot_timeout(tournament_id, next_match["id"]))
+        # Wake up any lobby WebSocket waiting in pending state for this slot
+        if slot_key in tournament_slot_events:
+            tournament_slot_events[slot_key].set()
 
     await database.db.tournaments.update_one(
         {"_id": oid},
@@ -606,6 +618,282 @@ async def poll_match_slot(
         return {"status": "started", "match_id": slot.get("match_id")}
     except asyncio.TimeoutError:
         return {"status": "waiting"}
+
+
+@router.websocket("/api/tournaments/{tournament_id}/{slot_id}/ws")
+async def tournament_lobby_ws(
+    websocket: WebSocket,
+    tournament_id: str,
+    slot_id: str,
+    token: str = Query(...),
+):
+    """Tournament match lobby WebSocket. Handles pending wait and 2-min countdown."""
+    from jose import jwt as jose_jwt, JWTError
+    from app.core.config import JWT_SECRET, ALGORITHM
+    from bson import ObjectId
+
+    await websocket.accept()
+
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    try:
+        payload = jose_jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise ValueError()
+    except Exception:
+        await websocket.send_json({"type": "error", "message": "Token inválido"})
+        await websocket.close()
+        return
+
+    # ── Fetch tournament ───────────────────────────────────────────────────────
+    try:
+        oid = ObjectId(tournament_id)
+    except Exception:
+        await websocket.send_json({"type": "error", "message": "Torneo no encontrado"})
+        await websocket.close()
+        return
+
+    tournament = await database.db.tournaments.find_one({"_id": oid})
+    if not tournament:
+        await websocket.send_json({"type": "error", "message": "Torneo no encontrado"})
+        await websocket.close()
+        return
+
+    slot_key = f"{tournament_id}:{slot_id}"
+
+    def _find_match(bracket):
+        for r_list in bracket:
+            for m in r_list:
+                if m["id"] == slot_id:
+                    return m
+        return None
+
+    match_doc = _find_match(tournament.get("bracket", []))
+    if not match_doc:
+        await websocket.send_json({"type": "error", "message": "Partida no encontrada"})
+        await websocket.close()
+        return
+
+    # ── Handle PENDING state (opponent's match still ongoing) ─────────────────
+    if match_doc["status"] == "pending":
+        if email not in tournament.get("participants", []):
+            await websocket.send_json({"type": "error", "message": "No eres participante de este torneo"})
+            await websocket.close()
+            return
+
+        await websocket.send_json({
+            "type": "pending",
+            "tournament_name": tournament.get("name", ""),
+            "tournament_desc": tournament.get("description", ""),
+        })
+
+        if slot_key not in tournament_slot_events:
+            tournament_slot_events[slot_key] = asyncio.Event()
+        ev = tournament_slot_events[slot_key]
+
+        # Poll until slot becomes ready (event fired by advance_bracket)
+        while not ev.is_set():
+            try:
+                await asyncio.wait_for(asyncio.shield(ev.wait()), timeout=5.0)
+            except asyncio.TimeoutError:
+                try:
+                    await websocket.send_json({"type": "waiting"})
+                except Exception:
+                    return  # client disconnected
+
+        # Re-fetch after event
+        tournament = await database.db.tournaments.find_one({"_id": oid})
+        if not tournament:
+            await websocket.close()
+            return
+        match_doc = _find_match(tournament.get("bracket", []))
+
+    # ── Slot must now be READY ─────────────────────────────────────────────────
+    slot = tournament_slots.get(slot_key)
+    if not slot:
+        # Slot may already have a match (e.g. page refresh after match created)
+        if match_doc and match_doc.get("match_id"):
+            await websocket.send_json({"type": "match_ready", "match_id": match_doc["match_id"]})
+        else:
+            await websocket.send_json({"type": "error", "message": "La partida ha expirado"})
+        await websocket.close()
+        return
+
+    is_p1 = email == slot.get("p1_email")
+    is_p2 = email == slot.get("p2_email")
+    if not is_p1 and not is_p2:
+        await websocket.send_json({"type": "error", "message": "No eres participante de esta partida"})
+        await websocket.close()
+        return
+
+    ready_at = slot.get("ready_at")
+    elapsed = (datetime.utcnow() - ready_at).total_seconds() if ready_at else 0
+    if elapsed > 125:
+        await websocket.send_json({"type": "forfeit", "message": "El tiempo para unirse ha expirado"})
+        await websocket.close()
+        return
+
+    side = "p1" if is_p1 else "p2"
+    other_side = "p2" if is_p1 else "p1"
+
+    # Register WS and mark ready
+    if slot_key not in tournament_ws_connections:
+        tournament_ws_connections[slot_key] = {"p1": None, "p2": None}
+    if slot_key not in tournament_match_locks:
+        tournament_match_locks[slot_key] = asyncio.Lock()
+
+    # Close stale connection for same side (page refresh)
+    old_ws = tournament_ws_connections[slot_key].get(side)
+    if old_ws and old_ws is not websocket:
+        try:
+            await old_ws.close()
+        except Exception:
+            pass
+
+    tournament_ws_connections[slot_key][side] = websocket
+    slot[f"{side}_ready"] = True
+
+    # Opponent info
+    opponent_email = slot["p2_email"] if is_p1 else slot["p1_email"]
+    opponent_user = await database.db.users.find_one(
+        {"email": opponent_email}, {"username": 1, "avatar": 1}
+    ) if opponent_email else None
+
+    remaining_secs = max(0, int(120 - elapsed))
+
+    await websocket.send_json({
+        "type": "init",
+        "tournament_name": tournament.get("name", ""),
+        "tournament_desc": tournament.get("description", ""),
+        "opponent": {
+            "username": (opponent_user or {}).get("username", opponent_email or ""),
+            "avatar": (opponent_user or {}).get("avatar"),
+        },
+        "remaining_seconds": remaining_secs,
+    })
+
+    # Notify opponent's WS that I arrived
+    other_ws = tournament_ws_connections[slot_key].get(other_side)
+    if other_ws:
+        try:
+            await other_ws.send_json({"type": "opponent_joined"})
+        except Exception:
+            pass
+
+    # If match already exists (e.g. both joined before this WS connected)
+    if slot.get("match_id"):
+        await websocket.send_json({"type": "match_ready", "match_id": slot["match_id"]})
+        tournament_ws_connections[slot_key][side] = None
+        await websocket.close()
+        return
+
+    # ── Match creation helper ──────────────────────────────────────────────────
+    async def try_create_match() -> str | None:
+        lock = tournament_match_locks.get(slot_key)
+        if not lock:
+            return None
+        async with lock:
+            s = tournament_slots.get(slot_key)
+            if not s:
+                return None
+            if s.get("match_id"):
+                return s["match_id"]
+            if not (s.get("p1_ready") and s.get("p2_ready")):
+                return None
+
+            from app.routers.matchmaking import active_matches, _pick_exercise, _build_player_data
+            p1_user = await database.db.users.find_one({"email": s["p1_email"]})
+            p2_user = await database.db.users.find_one({"email": s["p2_email"]})
+            if not p1_user or not p2_user:
+                return None
+
+            p1_data = await _build_player_data(s["p1_email"], p1_user)
+            p2_data = await _build_player_data(s["p2_email"], p2_user)
+            chosen_ex = await _pick_exercise()
+            mid = str(uuid.uuid4())
+
+            active_matches[mid] = {
+                "player1": p1_data,
+                "player2": p2_data,
+                "p1_progress": 0,
+                "p2_progress": 0,
+                "exercise": chosen_ex,
+                "status": "ongoing",
+                "winner": None,
+                "match_type": "tournament",
+                "tournament_id": tournament_id,
+                "slot_id": slot_id,
+                "event": asyncio.Event(),
+            }
+            s["match_id"] = mid
+            s["event"].set()
+
+            try:
+                t_doc = await database.db.tournaments.find_one({"_id": oid})
+                if t_doc:
+                    b = t_doc.get("bracket", [])
+                    for r_list in b:
+                        for m in r_list:
+                            if m["id"] == slot_id:
+                                m["status"] = "ongoing"
+                                m["match_id"] = mid
+                                break
+                    await database.db.tournaments.update_one({"_id": oid}, {"$set": {"bracket": b}})
+            except Exception:
+                pass
+            return mid
+
+    async def notify_both_and_close(mid: str):
+        for s_side in ("p1", "p2"):
+            w = tournament_ws_connections.get(slot_key, {}).get(s_side)
+            if w:
+                try:
+                    await w.send_json({"type": "match_ready", "match_id": mid})
+                except Exception:
+                    pass
+        tournament_ws_connections[slot_key]["p1"] = None
+        tournament_ws_connections[slot_key]["p2"] = None
+
+    # Immediately check if both ready
+    if slot.get("p1_ready") and slot.get("p2_ready"):
+        mid = await try_create_match()
+        if mid:
+            await notify_both_and_close(mid)
+            await websocket.close()
+            return
+
+    # ── Main tick loop ─────────────────────────────────────────────────────────
+    try:
+        while True:
+            await asyncio.sleep(1)
+
+            s = tournament_slots.get(slot_key)
+            if not s:
+                break
+
+            if s.get("match_id"):
+                await websocket.send_json({"type": "match_ready", "match_id": s["match_id"]})
+                break
+
+            if s.get("p1_ready") and s.get("p2_ready"):
+                mid = await try_create_match()
+                if mid:
+                    await notify_both_and_close(mid)
+                    break
+
+            ra = s.get("ready_at")
+            if ra:
+                el = (datetime.utcnow() - ra).total_seconds()
+                rem = max(0, int(120 - el))
+                await websocket.send_json({"type": "tick", "remaining_seconds": rem})
+                if rem <= 0:
+                    break
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if slot_key in tournament_ws_connections:
+            tournament_ws_connections[slot_key][side] = None
 
 
 @router.delete("/api/tournaments/{tournament_id}")
