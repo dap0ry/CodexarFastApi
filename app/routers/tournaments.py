@@ -711,13 +711,40 @@ async def tournament_lobby_ws(
     # ── Slot must now be READY ─────────────────────────────────────────────────
     slot = tournament_slots.get(slot_key)
     if not slot:
-        # Slot may already have a match (e.g. page refresh after match created)
+        # Match already created (e.g. page refresh)
         if match_doc and match_doc.get("match_id"):
             await websocket.send_json({"type": "match_ready", "match_id": match_doc["match_id"]})
+            await websocket.close()
+            return
+
+        # Server restarted — recreate slot from DB if match is still within time window
+        if match_doc and match_doc.get("status") == "ready" and match_doc.get("p1_email") and match_doc.get("p2_email"):
+            ready_at_str = match_doc.get("ready_at")
+            try:
+                ready_at = datetime.fromisoformat(ready_at_str.replace("Z", "")).replace(tzinfo=None) if ready_at_str else datetime.utcnow()
+            except Exception:
+                ready_at = datetime.utcnow()
+            elapsed_since = (datetime.utcnow() - ready_at).total_seconds()
+            if elapsed_since >= 120:
+                await websocket.send_json({"type": "forfeit", "message": "Tiempo agotado. Avanzando en el bracket..."})
+                await websocket.close()
+                return
+            tournament_slots[slot_key] = {
+                "p1_email": match_doc["p1_email"],
+                "p2_email": match_doc["p2_email"],
+                "p1_ready": False,
+                "p2_ready": False,
+                "match_id": None,
+                "ready_at": ready_at,
+                "event": asyncio.Event(),
+            }
+            remaining = max(0, 120 - elapsed_since)
+            asyncio.create_task(_slot_timeout(tournament_id, slot_id, remaining))
+            slot = tournament_slots[slot_key]
         else:
             await websocket.send_json({"type": "error", "message": "La partida ha expirado"})
-        await websocket.close()
-        return
+            await websocket.close()
+            return
 
     is_p1 = email == slot.get("p1_email")
     is_p2 = email == slot.get("p2_email")
