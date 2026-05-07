@@ -172,7 +172,7 @@ async def advance_bracket(tournament_id: str, slot_id: str, winner_email: str):
     if p1 is not None and p2 is not None:
         next_match["status"] = "ready"
         now = datetime.utcnow()
-        next_match["ready_at"] = now.isoformat()
+        next_match["ready_at"] = now.isoformat() + "Z"
 
         slot_key = f"{tournament_id}:{next_match['id']}"
         tournament_slots[slot_key] = {
@@ -390,7 +390,7 @@ async def get_tournament(tournament_id: str, email: str = Depends(get_current_us
                 "p1_ready": state["p1_ready"],
                 "p2_ready": state["p2_ready"],
                 "match_id": state.get("match_id"),
-                "ready_at": ready_at.isoformat() if isinstance(ready_at, datetime) else ready_at,
+                "ready_at": (ready_at.isoformat() + "Z") if isinstance(ready_at, datetime) else ready_at,
             }
     tournament["slot_states"] = slot_states
 
@@ -472,7 +472,7 @@ async def start_tournament(tournament_id: str, admin: dict = Depends(require_adm
                     "ready_at": now,
                     "event": asyncio.Event(),
                 }
-                match["ready_at"] = now.isoformat()
+                match["ready_at"] = now.isoformat() + "Z"
                 asyncio.create_task(_slot_timeout(tournament_id, match["id"]))
 
     await database.db.users.update_many(
