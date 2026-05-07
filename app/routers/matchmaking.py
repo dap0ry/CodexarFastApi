@@ -182,6 +182,7 @@ async def get_match_state(match_id: str, email: str = Depends(get_current_user))
         "status": match["status"],
         "winner": match["winner"],
         "match_type": match.get("match_type", "ranked"),
+        "tournament_id": match.get("tournament_id"),
     }
 
 

@@ -348,6 +348,11 @@ async def list_tournaments(email: str = Depends(get_current_user)):
     for doc in docs:
         doc = _oid(doc)
         doc.pop("bracket", None)
+        we = doc.get("winner_email")
+        if we:
+            wu = await database.db.users.find_one({"email": we}, {"username": 1, "avatar": 1})
+            if wu:
+                doc["winner"] = {"email": we, "username": wu.get("username", we), "avatar": wu.get("avatar")}
         result.append(doc)
     return result
 
