@@ -180,7 +180,8 @@ async def get_match_state(match_id: str, email: str = Depends(get_current_user))
         "op_progress": op_progress,
         "exercise": match["exercise"],
         "status": match["status"],
-        "winner": match["winner"]
+        "winner": match["winner"],
+        "match_type": match.get("match_type", "ranked"),
     }
 
 
