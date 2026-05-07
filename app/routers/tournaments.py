@@ -885,9 +885,10 @@ async def tournament_lobby_ws(
             if ra:
                 el = (datetime.utcnow() - ra).total_seconds()
                 rem = max(0, int(120 - el))
-                await websocket.send_json({"type": "tick", "remaining_seconds": rem})
                 if rem <= 0:
+                    await websocket.send_json({"type": "forfeit", "message": "Tiempo agotado. Avanzando en el bracket..."})
                     break
+                await websocket.send_json({"type": "tick", "remaining_seconds": rem})
 
     except WebSocketDisconnect:
         pass
