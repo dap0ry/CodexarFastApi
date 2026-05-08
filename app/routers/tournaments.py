@@ -347,8 +347,22 @@ async def list_tournaments(email: str = Depends(get_current_user)):
     result = []
     for doc in docs:
         doc = _oid(doc)
-        doc.pop("bracket", None)
+        bracket = doc.pop("bracket", None)
         we = doc.get("winner_email")
+        # Derive winner from bracket final if not stored (legacy tournaments)
+        if not we and doc.get("status") == "finished" and bracket:
+            try:
+                final_match = bracket[-1][0]
+                we = final_match.get("winner_email")
+                if we:
+                    doc["winner_email"] = we
+                    from bson import ObjectId
+                    await database.db.tournaments.update_one(
+                        {"_id": ObjectId(doc["id"])},
+                        {"$set": {"winner_email": we}}
+                    )
+            except (IndexError, KeyError, TypeError):
+                pass
         if we:
             wu = await database.db.users.find_one({"email": we}, {"username": 1, "avatar": 1})
             if wu:
