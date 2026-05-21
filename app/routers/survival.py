@@ -131,6 +131,10 @@ async def _end_game(room_id: str):
                     .get(diff_key, {})
                     .get("max_exercises", 0)
                 )
+            await database.db.users.update_one(
+                {"email": player_email},
+                {"$inc": {"survival_games": 1}}
+            )
             if exercises_solved > current_max:
                 await database.db.users.update_one(
                     {"email": player_email},
