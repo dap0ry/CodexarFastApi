@@ -53,10 +53,11 @@ else:
     JUDGE0_URL     = _JUDGE0_PUBLIC_URL
     JUDGE0_HEADERS = {}
 
-# Supported languages (Python + C++ only for now)
+# Supported languages
 JUDGE0_LANG = {
     "Python": 71,   # Python 3.8.1
     "C++":    54,   # GCC 9.2.0
+    "Java":   62,   # Java (OpenJDK 13.0.1)
 }
 
 
