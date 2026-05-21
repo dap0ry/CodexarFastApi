@@ -39,10 +39,18 @@ async def _resolve_mentions(body: str) -> list[str]:
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
+class I18nFields(BaseModel):
+    es: str = ""
+    en: str = ""
+    zh: str = ""
+
 class NewsCreate(BaseModel):
     title: str
     subtitle: str
     body: str
+    title_i18n:    I18nFields | None = None
+    subtitle_i18n: I18nFields | None = None
+    body_i18n:     I18nFields | None = None
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -67,14 +75,20 @@ async def create_news(payload: NewsCreate, email: str = Depends(get_current_user
     user = await _get_user(email)
     mentions = await _resolve_mentions(payload.body)
     doc = {
-        "title": payload.title.strip(),
+        "title":    payload.title.strip(),
         "subtitle": payload.subtitle.strip(),
-        "creator": user["username"],
-        "body": payload.body.strip(),
+        "creator":  user["username"],
+        "body":     payload.body.strip(),
         "mentions": mentions,
-        "likes": [],
+        "likes":    [],
         "created_at": datetime.utcnow(),
     }
+    if payload.title_i18n:
+        doc["title_i18n"]    = payload.title_i18n.model_dump()
+    if payload.subtitle_i18n:
+        doc["subtitle_i18n"] = payload.subtitle_i18n.model_dump()
+    if payload.body_i18n:
+        doc["body_i18n"]     = payload.body_i18n.model_dump()
     result = await database.db.news.insert_one(doc)
     doc["id"] = str(result.inserted_id)
     doc.pop("_id", None)
