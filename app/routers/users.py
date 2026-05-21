@@ -537,9 +537,11 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
             "demencial": {"max_exercises": 0},
         }),
         "survival_games": user.get("survival_games", 0),
-        "tournaments_joined": user.get("tournaments_joined", 0),
-        "tournament_wins":    user.get("tournament_wins", 0),
-        "tournament_winrate": round(user.get("tournament_wins", 0) / user.get("tournaments_joined", 1) * 100) if user.get("tournaments_joined", 0) > 0 else 0,
+        "tournaments_joined":      user.get("tournaments_joined", 0),
+        "tournament_wins":         user.get("tournament_wins", 0),
+        "tournament_winrate":      round(user.get("tournament_wins", 0) / user.get("tournaments_joined", 1) * 100) if user.get("tournaments_joined", 0) > 0 else 0,
+        "tournament_match_wins":   user.get("tournament_match_wins", 0),
+        "tournament_match_losses": user.get("tournament_match_losses", 0),
     }
 
 
