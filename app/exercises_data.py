@@ -2661,4 +2661,89 @@ EXERCISES_SEED = [
         "C#": "public static int[] Solve(int n, int[][] edges, object[][] operations) {\n    // HLD + Persistent Segment Tree + rollback\n    return new int[0];\n}",
     },
 },
+{
+    "title": "Ejercicio de Idiomas",
+    "title_i18n": {
+        "es": "Ejercicio de Idiomas",
+        "en": "Language Exercise",
+        "zh": "语言练习",
+    },
+    "difficulty": 800, "category": "Matemáticas", "total_solvers": 0,
+    "description": (
+        "Dado un entero positivo n, calcula y devuelve la suma de sus dígitos.\n\n"
+        "Por ejemplo, si n = 1234, los dígitos son 1, 2, 3 y 4, y su suma es 10.\n\n"
+        "Restricciones:\n"
+        "  1 ≤ n ≤ 10^9\n\n"
+        "Ejemplo 1:\n"
+        "  Entrada: n = 123\n"
+        "  Salida: 6\n"
+        "  Explicación: 1 + 2 + 3 = 6\n\n"
+        "Ejemplo 2:\n"
+        "  Entrada: n = 9875\n"
+        "  Salida: 29\n"
+        "  Explicación: 9 + 8 + 7 + 5 = 29\n\n"
+        "Escribe `solve(n)` que devuelva la suma de los dígitos de n."
+    ),
+    "description_i18n": {
+        "es": (
+            "Dado un entero positivo n, calcula y devuelve la suma de sus dígitos.\n\n"
+            "Por ejemplo, si n = 1234, los dígitos son 1, 2, 3 y 4, y su suma es 10.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ n ≤ 10^9\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: n = 123\n"
+            "  Salida: 6\n"
+            "  Explicación: 1 + 2 + 3 = 6\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: n = 9875\n"
+            "  Salida: 29\n"
+            "  Explicación: 9 + 8 + 7 + 5 = 29\n\n"
+            "Escribe `solve(n)` que devuelva la suma de los dígitos de n."
+        ),
+        "en": (
+            "Given a positive integer n, compute and return the sum of its digits.\n\n"
+            "For example, if n = 1234, the digits are 1, 2, 3 and 4, and their sum is 10.\n\n"
+            "Constraints:\n"
+            "  1 ≤ n ≤ 10^9\n\n"
+            "Example 1:\n"
+            "  Input: n = 123\n"
+            "  Output: 6\n"
+            "  Explanation: 1 + 2 + 3 = 6\n\n"
+            "Example 2:\n"
+            "  Input: n = 9875\n"
+            "  Output: 29\n"
+            "  Explanation: 9 + 8 + 7 + 5 = 29\n\n"
+            "Write `solve(n)` that returns the digit sum of n."
+        ),
+        "zh": (
+            "给定一个正整数 n，计算并返回其各位数字之和。\n\n"
+            "例如，若 n = 1234，各位数字为 1、2、3 和 4，其和为 10。\n\n"
+            "约束条件：\n"
+            "  1 ≤ n ≤ 10^9\n\n"
+            "示例 1：\n"
+            "  输入：n = 123\n"
+            "  输出：6\n"
+            "  解释：1 + 2 + 3 = 6\n\n"
+            "示例 2：\n"
+            "  输入：n = 9875\n"
+            "  输出：29\n"
+            "  解释：9 + 8 + 7 + 5 = 29\n\n"
+            "编写 `solve(n)`，返回 n 的数字之和。"
+        ),
+    },
+    "test_cases": [
+        {"input": "123",       "expected_output": "6"},
+        {"input": "9875",      "expected_output": "29"},
+        {"input": "1",         "expected_output": "1"},
+        {"input": "1000000000","expected_output": "1"},
+        {"input": "999",       "expected_output": "27"},
+    ],
+    "stub": {
+        "Python": "def solve(n):\n    # Suma los dígitos de n\n    pass",
+        "C++":    "int solve(int n) {\n    // Suma los dígitos de n\n    return 0;\n}",
+        "Java":   "public static int solve(int n) {\n    // Suma los dígitos de n\n    return 0;\n}",
+        "Go":     "func solve(n int) int {\n    // Suma los dígitos de n\n    return 0\n}",
+        "C#":     "public static int Solve(int n) {\n    // Suma los dígitos de n\n    return 0;\n}",
+    },
+},
 ]

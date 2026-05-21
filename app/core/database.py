@@ -30,15 +30,20 @@ async def startup_db_client():
     # Upsert every seed exercise by title (preserves _id and solver stats for existing ones)
     updated = inserted = 0
     for seed_ex in EXERCISES_SEED:
+        set_doc = {
+            "description":       seed_ex.get("description", ""),
+            "difficulty":        seed_ex.get("difficulty", "Normal"),
+            "category":          seed_ex.get("category", ""),
+            "test_cases":        seed_ex.get("test_cases", []),
+            "stub":              seed_ex.get("stub", {}),
+        }
+        if "title_i18n" in seed_ex:
+            set_doc["title_i18n"] = seed_ex["title_i18n"]
+        if "description_i18n" in seed_ex:
+            set_doc["description_i18n"] = seed_ex["description_i18n"]
         result = await db.exercises.update_one(
             {"title": seed_ex["title"]},
-            {"$set": {
-                "description":  seed_ex.get("description", ""),
-                "difficulty":   seed_ex.get("difficulty", "Normal"),
-                "category":     seed_ex.get("category", ""),
-                "test_cases":   seed_ex.get("test_cases", []),
-                "stub":         seed_ex.get("stub", {}),
-            }},
+            {"$set": set_doc},
             upsert=True
         )
         if result.upserted_id:
