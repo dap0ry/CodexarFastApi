@@ -149,6 +149,7 @@ async def _end_game(room_id: str):
 
     exercises_solved  = room["exercises_solved"]
     time_survived     = int(time.time() - room.get("started_at", time.time()))
+    mode_key          = "coop" if len(room["players"]) > 1 else "solo"
 
     for player in room["players"]:
         player_email = player["email"]
@@ -162,21 +163,27 @@ async def _end_game(room_id: str):
             if user_doc:
                 current_stats = user_doc.get("survival_stats", {}).get("survival", {})
 
-            current_max_ex = current_stats.get("max_exercises", 0)
-            current_max_t  = current_stats.get("max_time_survived", 0)
-
             await database.db.users.update_one(
                 {"email": player_email},
-                {"$inc": {"survival_games": 1}}
+                {"$inc": {
+                    "survival_games": 1,
+                    f"survival_stats.survival.{mode_key}_games": 1,
+                }}
             )
 
             update_fields = {}
-            if exercises_solved > current_max_ex:
+            # Overall max
+            if exercises_solved > current_stats.get("max_exercises", 0):
                 update_fields["survival_stats.survival.max_exercises"] = exercises_solved
                 new_record = True
-            if time_survived > current_max_t:
+            if time_survived > current_stats.get("max_time_survived", 0):
                 update_fields["survival_stats.survival.max_time_survived"] = time_survived
                 new_record = True
+            # Mode-specific max
+            if exercises_solved > current_stats.get(f"{mode_key}_max_exercises", 0):
+                update_fields[f"survival_stats.survival.{mode_key}_max_exercises"] = exercises_solved
+            if time_survived > current_stats.get(f"{mode_key}_max_time_survived", 0):
+                update_fields[f"survival_stats.survival.{mode_key}_max_time_survived"] = time_survived
 
             if update_fields:
                 await database.db.users.update_one(
@@ -301,6 +308,16 @@ async def my_record(email: str = Depends(get_current_user)):
         "max_exercises":     stats.get("max_exercises", 0),
         "max_time_survived": stats.get("max_time_survived", 0),
         "games_played":      user.get("survival_games", 0),
+        "solo": {
+            "games":             stats.get("solo_games", 0),
+            "max_exercises":     stats.get("solo_max_exercises", 0),
+            "max_time_survived": stats.get("solo_max_time_survived", 0),
+        },
+        "coop": {
+            "games":             stats.get("coop_games", 0),
+            "max_exercises":     stats.get("coop_max_exercises", 0),
+            "max_time_survived": stats.get("coop_max_time_survived", 0),
+        },
     }
 
 
