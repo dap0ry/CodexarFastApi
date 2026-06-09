@@ -24,6 +24,11 @@ class TestCaseIn(BaseModel):
     expected_output: str
 
 
+class I18nFields(BaseModel):
+    es: str = ""
+    en: str = ""
+    zh: str = ""
+
 class ExerciseCreate(BaseModel):
     title: str
     description: str
@@ -35,6 +40,8 @@ class ExerciseCreate(BaseModel):
     stub_java:   str = ""
     stub_go:     str = ""
     stub_csharp: str = ""
+    title_i18n:       I18nFields | None = None
+    description_i18n: I18nFields | None = None
 
 # ─────────────────────────────────────────────
 #  Judge0 config
@@ -704,6 +711,10 @@ async def create_exercise(body: ExerciseCreate, creator: dict = Depends(require_
         "created_at":  datetime.utcnow(),
         "solvers":     [],
     }
+    if body.title_i18n:
+        doc["title_i18n"] = body.title_i18n.model_dump()
+    if body.description_i18n:
+        doc["description_i18n"] = body.description_i18n.model_dump()
     result = await database.db.exercises.insert_one(doc)
     return {"message": "Ejercicio creado correctamente", "id": str(result.inserted_id)}
 
