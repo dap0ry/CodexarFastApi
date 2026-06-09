@@ -355,7 +355,7 @@ def _build_python(user_code: str, all_args: list) -> str:
         calls.append(
             f"    try:\n"
             f"        _r = solve({py_args})\n"
-            f"        print('__NONE__' if _r is None else str(_r), flush=True)\n"
+            f"        print('__NONE__' if _r is None else ('__EMPTY__' if _r == '' else str(_r)), flush=True)\n"
             f"    except Exception as _e:\n"
             f"        print(f'__ERR__:{{_e}}', flush=True)\n"
         )
@@ -473,8 +473,12 @@ async def _run_with_judge0(language: str, user_code: str, test_cases: list, comp
                 "got":         "None (sin return)",
             }
 
-        # ── 6c. No output for this case ────────────────────────────────────
-        if not actual_raw:
+        # ── 6c. Empty string return (legitimate) ──────────────────────────
+        if actual_raw == "__EMPTY__":
+            actual_raw = ""
+
+        # ── 6d. No output for this case ────────────────────────────────────
+        elif not actual_raw:
             err_hint = stderr.strip()[:300] if stderr.strip() else "el programa no produjo salida"
             return {
                 "correct":     False,
@@ -485,7 +489,7 @@ async def _run_with_judge0(language: str, user_code: str, test_cases: list, comp
                 "got":         "(sin salida)",
             }
 
-        # ── 6d. Deep comparison via compare.py ────────────────────────────
+        # ── 6e. Deep comparison via compare.py ────────────────────────────
         ok, got_display, exp_display = compare_result(
             got_raw      = actual_raw,
             expected_raw = expected_raw,
