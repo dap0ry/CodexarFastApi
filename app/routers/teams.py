@@ -399,6 +399,42 @@ async def upload_team_photo(team_id: str, photo: UploadFile = File(...), email: 
         raise HTTPException(status_code=500, detail="Error subiendo la foto del equipo")
 
 
+@router.post("/api/teams/{team_id}/upload-banner")
+async def upload_team_banner(team_id: str, banner: UploadFile = File(...), email: str = Depends(get_current_user)):
+    from bson import ObjectId
+    user = await _get_user(email)
+    username = user.get("username", "")
+    try:
+        oid = ObjectId(team_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    team = await database.db.teams.find_one({"_id": oid})
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    if team.get("owner") != username:
+        raise HTTPException(status_code=403, detail="Solo el capitán puede cambiar el banner")
+    if banner.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG, WEBP o GIF.")
+    contents = await banner.read()
+    if len(contents) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El banner no puede superar los 3 MB.")
+    banner.file = io.BytesIO(contents)
+    try:
+        result = cloudinary.uploader.upload(
+            banner.file,
+            folder="Codexar/TeamBanners",
+            public_id=f"team_{team_id}_banner",
+            overwrite=True,
+            resource_type="auto"
+        )
+        url = result.get("secure_url")
+        await database.db.teams.update_one({"_id": oid}, {"$set": {"banner_url": url}})
+        return {"status": "success", "url": url}
+    except Exception as e:
+        logger.warning("Team banner upload error: %s", str(e))
+        raise HTTPException(status_code=500, detail="Error subiendo el banner del equipo")
+
+
 @router.post("/api/teams/{team_id}/upload-background")
 async def upload_team_background(team_id: str, bg: UploadFile = File(...), email: str = Depends(get_current_user)):
     from bson import ObjectId
