@@ -650,24 +650,24 @@ async def solve_exercise(exercise_id: str, body: SolveRequest, email: str = Depe
 
         if not already_solved:
             difficulty = ex.get("difficulty", 1200)
-            def _elo_reward(d):
-                if d < 1000:   return (1,  10)
-                if d < 1200:   return (2,  20)
-                if d < 1400:   return (3,  30)
-                if d < 1600:   return (5,  50)
-                if d < 1800:   return (8,  80)
-                if d < 2000:   return (12, 120)
-                if d < 2400:   return (18, 180)
-                if d < 3000:   return (25, 250)
-                if d < 3500:   return (35, 350)
-                return (50, 500)
-            elo_gain, coins_gain = _elo_reward(difficulty if isinstance(difficulty, int) else 1200)
+            def _coins_reward(d):
+                if d < 1000:   return 10
+                if d < 1200:   return 20
+                if d < 1400:   return 30
+                if d < 1600:   return 50
+                if d < 1800:   return 80
+                if d < 2000:   return 120
+                if d < 2400:   return 180
+                if d < 3000:   return 250
+                if d < 3500:   return 350
+                return 500
+            coins_gain = _coins_reward(difficulty if isinstance(difficulty, int) else 1200)
 
             await database.db.users.update_one(
                 {"email": email},
                 {
                     "$addToSet": {"solved_exercises": exercise_id},
-                    "$inc": {"elo": elo_gain, "coins": coins_gain}
+                    "$inc": {"coins": coins_gain}
                 }
             )
             ex_fresh = await database.db.exercises.find_one({"_id": oid})
