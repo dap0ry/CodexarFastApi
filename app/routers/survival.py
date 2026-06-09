@@ -1,5 +1,7 @@
 import asyncio
 import json
+import random
+import time
 import uuid
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
@@ -8,7 +10,6 @@ from jose import JWTError, jwt
 import app.core.database as database
 from app.core.config import JWT_SECRET, ALGORITHM
 from app.core.security import get_current_user
-from app.routers.matchmaking import _pick_exercise
 
 router = APIRouter()
 
@@ -16,18 +17,22 @@ router = APIRouter()
 survival_rooms: dict = {}    # { room_id: room_data }
 survival_invites: dict = {}  # { invite_id: invite_data }
 
-# ── Difficulty config ─────────────────────────────────────────────────────────
-SURVIVAL_CONFIG = {
-    "normal":    {"start_time": 60,  "bonus": 10, "label": "NORMAL"},
-    "dificil":   {"start_time": 45,  "bonus": 7,  "label": "DIFÍCIL"},
-    "demencial": {"start_time": 30,  "bonus": 5,  "label": "DEMENCIAL"},
-}
+# ── Config ─────────────────────────────────────────────────────────────────────
+SURVIVAL_START_TIME = 1800   # 30 minutes
+SURVIVAL_BONUS      = 300    # +5 minutes per exercise solved
+
+# Exercise difficulty progression by exercise number
+def _target_difficulty(exercise_num: int) -> int:
+    if exercise_num <= 3:
+        return 800
+    if exercise_num <= 6:
+        return 1200
+    return 1600
 
 
 # ── Broadcast helpers ─────────────────────────────────────────────────────────
 
 async def _broadcast(room: dict, msg: dict):
-    """Send msg to all connected players in the room."""
     dead = []
     for em, ws in list(room["connections"].items()):
         try:
@@ -46,7 +51,6 @@ async def _send_to(ws: WebSocket, msg: dict):
 
 
 async def _broadcast_to_others(room: dict, sender_email: str, msg: dict):
-    """Send msg to all connected players except the sender."""
     for em, ws in list(room["connections"].items()):
         if em != sender_email:
             try:
@@ -63,7 +67,6 @@ def _room_players_payload(room: dict) -> list:
 
 
 def _exercise_payload(ex: dict) -> dict:
-    """Strip heavy fields not needed by frontend (keep test_cases and stub)."""
     return {
         "id":          ex.get("id", ""),
         "title":       ex.get("title", ""),
@@ -73,6 +76,40 @@ def _exercise_payload(ex: dict) -> dict:
         "test_cases":  ex.get("test_cases", []),
         "stub":        ex.get("stub", {}),
     }
+
+
+# ── Exercise picker (progressive difficulty) ──────────────────────────────────
+
+async def _pick_survival_exercise(exercise_num: int) -> dict:
+    from app.exercises_data import EXERCISES_SEED
+    target_diff = _target_difficulty(exercise_num)
+
+    valid = [
+        ex for ex in EXERCISES_SEED
+        if "test_cases" in ex and len(ex["test_cases"]) > 0
+        and ex.get("difficulty") == target_diff
+    ]
+    if not valid:
+        valid = [ex for ex in EXERCISES_SEED if "test_cases" in ex and len(ex["test_cases"]) > 0]
+
+    chosen_ex = dict(random.choice(valid))
+
+    db_exercise = await database.db.exercises.find_one({"title": chosen_ex["title"]})
+    if db_exercise:
+        chosen_ex["id"] = str(db_exercise["_id"])
+    else:
+        db_exercise = await database.db.exercises.find_one({"test_cases": {"$exists": True, "$ne": []}})
+        if db_exercise:
+            chosen_ex = {
+                "title":       db_exercise.get("title", chosen_ex["title"]),
+                "description": db_exercise.get("description", chosen_ex["description"]),
+                "difficulty":  db_exercise.get("difficulty", chosen_ex["difficulty"]),
+                "category":    db_exercise.get("category", chosen_ex["category"]),
+                "test_cases":  db_exercise.get("test_cases", []),
+                "stub":        db_exercise.get("stub", {}),
+                "id":          str(db_exercise["_id"]),
+            }
+    return chosen_ex
 
 
 # ── Timer ─────────────────────────────────────────────────────────────────────
@@ -94,7 +131,6 @@ async def _run_timer(room_id: str):
         room["time_left"] -= 1
         tick += 1
 
-        # Broadcast time_sync every 5 seconds
         if tick % 5 == 0:
             await _broadcast(room, {"type": "time_sync", "time_left": room["time_left"]})
 
@@ -111,10 +147,9 @@ async def _end_game(room_id: str):
     if room.get("timer_task") and not room["timer_task"].done():
         room["timer_task"].cancel()
 
-    exercises_solved = room["exercises_solved"]
-    diff_key = room["difficulty"]
+    exercises_solved  = room["exercises_solved"]
+    time_survived     = int(time.time() - room.get("started_at", time.time()))
 
-    # Update each player's survival stats in MongoDB
     for player in room["players"]:
         player_email = player["email"]
         new_record = False
@@ -123,33 +158,39 @@ async def _end_game(room_id: str):
                 {"email": player_email},
                 {"survival_stats": 1}
             )
-            current_max = 0
+            current_stats = {}
             if user_doc:
-                current_max = (
-                    user_doc
-                    .get("survival_stats", {})
-                    .get(diff_key, {})
-                    .get("max_exercises", 0)
-                )
+                current_stats = user_doc.get("survival_stats", {}).get("survival", {})
+
+            current_max_ex = current_stats.get("max_exercises", 0)
+            current_max_t  = current_stats.get("max_time_survived", 0)
+
             await database.db.users.update_one(
                 {"email": player_email},
                 {"$inc": {"survival_games": 1}}
             )
-            if exercises_solved > current_max:
-                await database.db.users.update_one(
-                    {"email": player_email},
-                    {"$set": {f"survival_stats.{diff_key}.max_exercises": exercises_solved}}
-                )
+
+            update_fields = {}
+            if exercises_solved > current_max_ex:
+                update_fields["survival_stats.survival.max_exercises"] = exercises_solved
+                new_record = True
+            if time_survived > current_max_t:
+                update_fields["survival_stats.survival.max_time_survived"] = time_survived
                 new_record = True
 
-            # Send personalized game_over to this player's connection
+            if update_fields:
+                await database.db.users.update_one(
+                    {"email": player_email},
+                    {"$set": update_fields}
+                )
+
             ws = room["connections"].get(player_email)
             if ws:
                 try:
                     await ws.send_text(json.dumps({
                         "type":             "game_over",
                         "exercises_solved": exercises_solved,
-                        "difficulty":       diff_key,
+                        "time_survived":    time_survived,
                         "new_record":       new_record,
                         "abandoned_by":     room.get("abandoned_by"),
                     }))
@@ -158,7 +199,6 @@ async def _end_game(room_id: str):
         except Exception:
             pass
 
-    # Schedule room cleanup after 60s
     async def _cleanup():
         await asyncio.sleep(60)
         survival_rooms.pop(room_id, None)
@@ -169,36 +209,33 @@ async def _end_game(room_id: str):
 # ── HTTP Endpoints ────────────────────────────────────────────────────────────
 
 @router.post("/api/survival/room")
-async def create_room(difficulty: str = "normal", email: str = Depends(get_current_user)):
-    difficulty = difficulty.lower()
-    if difficulty not in SURVIVAL_CONFIG:
-        raise HTTPException(status_code=400, detail="Dificultad no válida. Usa: normal, dificil, demencial")
-
+async def create_room(email: str = Depends(get_current_user)):
     user = await database.db.users.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=401, detail="No autorizado")
 
     room_id = str(uuid.uuid4())
     survival_rooms[room_id] = {
-        "room_id":         room_id,
-        "host_email":      email,
-        "difficulty":      difficulty,
-        "status":          "lobby",
-        "players":         [
+        "room_id":          room_id,
+        "host_email":       email,
+        "difficulty":       "survival",
+        "status":           "lobby",
+        "players":          [
             {
                 "email":    email,
                 "username": user.get("username", ""),
                 "avatar":   user.get("avatar", ""),
             }
         ],
-        "connections":     {},
-        "exercise":        None,
-        "exercise_num":    0,
+        "connections":      {},
+        "exercise":         None,
+        "exercise_num":     0,
         "exercises_solved": 0,
-        "time_left":       float(SURVIVAL_CONFIG[difficulty]["start_time"]),
-        "timer_task":      None,
+        "time_left":        float(SURVIVAL_START_TIME),
+        "started_at":       None,
+        "timer_task":       None,
     }
-    return {"room_id": room_id, "difficulty": difficulty}
+    return {"room_id": room_id}
 
 
 @router.get("/api/survival/room/{room_id}")
@@ -230,15 +267,13 @@ async def start_room(room_id: str, email: str = Depends(get_current_user)):
     if room["status"] != "lobby":
         raise HTTPException(status_code=400, detail="La partida ya fue iniciada")
 
-    exercise = await _pick_exercise()
+    exercise = await _pick_survival_exercise(1)
     room["exercise"]     = exercise
     room["exercise_num"] = 1
     room["status"]       = "in_game"
+    room["time_left"]    = float(SURVIVAL_START_TIME)
+    room["started_at"]   = time.time()
 
-    config = SURVIVAL_CONFIG[room["difficulty"]]
-    room["time_left"] = float(config["start_time"])
-
-    # Broadcast game_started to all WS connections
     await _broadcast(room, {
         "type":         "game_started",
         "exercise":     _exercise_payload(exercise),
@@ -246,11 +281,27 @@ async def start_room(room_id: str, email: str = Depends(get_current_user)):
         "exercise_num": room["exercise_num"],
     })
 
-    # Spawn server-side countdown
     task = asyncio.create_task(_run_timer(room_id))
     room["timer_task"] = task
 
     return {"ok": True}
+
+
+@router.get("/api/survival/my-record")
+async def my_record(email: str = Depends(get_current_user)):
+    user = await database.db.users.find_one(
+        {"email": email},
+        {"survival_stats": 1, "survival_games": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    stats = user.get("survival_stats", {}).get("survival", {})
+    return {
+        "max_exercises":     stats.get("max_exercises", 0),
+        "max_time_survived": stats.get("max_time_survived", 0),
+        "games_played":      user.get("survival_games", 0),
+    }
 
 
 # ── Invite endpoints ──────────────────────────────────────────────────────────
@@ -273,20 +324,19 @@ async def survival_invite(room_id: str, target_username: str, email: str = Depen
     if target["email"] not in sender.get("friends", []):
         raise HTTPException(status_code=403, detail="Solo puedes invitar a tus amigos")
 
-    # Check target is not already in room
     player_emails = [p["email"] for p in room["players"]]
     if target["email"] in player_emails:
         raise HTTPException(status_code=400, detail="El usuario ya está en la sala")
 
     invite_id = str(uuid.uuid4())
     survival_invites[invite_id] = {
-        "invite_id":      invite_id,
-        "from_email":     email,
-        "from_username":  sender.get("username", email),
-        "to_email":       target["email"],
-        "room_id":        room_id,
-        "difficulty":     room["difficulty"],
-        "status":         "pending",
+        "invite_id":     invite_id,
+        "from_email":    email,
+        "from_username": sender.get("username", email),
+        "to_email":      target["email"],
+        "room_id":       room_id,
+        "difficulty":    "survival",
+        "status":        "pending",
     }
     return {"invite_id": invite_id}
 
@@ -332,7 +382,6 @@ async def accept_invite(invite_id: str, email: str = Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=401, detail="No autorizado")
 
-    # Add player to room
     room["players"].append({
         "email":    email,
         "username": user.get("username", ""),
@@ -340,13 +389,12 @@ async def accept_invite(invite_id: str, email: str = Depends(get_current_user)):
     })
     inv["status"] = "accepted"
 
-    # Notify existing WS connections of new player
     await _broadcast(room, {
         "type":    "player_joined",
         "players": _room_players_payload(room),
     })
 
-    return {"room_id": room_id, "difficulty": room["difficulty"]}
+    return {"room_id": room_id, "difficulty": "survival"}
 
 
 @router.post("/api/survival/reject/{invite_id}")
@@ -364,7 +412,6 @@ async def reject_invite(invite_id: str, email: str = Depends(get_current_user)):
 
 @router.websocket("/api/survival/ws/{room_id}")
 async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...)):
-    # Authenticate
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -392,11 +439,9 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
     await websocket.accept()
     room["connections"][email] = websocket
 
-    # Cancel any pending disconnect-grace task for this player
     if grace_task := room.get("disconnect_tasks", {}).pop(email, None):
         grace_task.cancel()
 
-    # Send current room state on connect
     if room["status"] == "in_game":
         await _send_to(websocket, {
             "type":         "game_started",
@@ -404,6 +449,15 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
             "time_left":    room["time_left"],
             "exercise_num": room["exercise_num"],
             "current_code": room.get("current_code", ""),
+        })
+    elif room["status"] == "finished":
+        # Player reconnected after game ended — send game_over so they see the result
+        await _send_to(websocket, {
+            "type":             "game_over",
+            "exercises_solved": room["exercises_solved"],
+            "time_survived":    int(time.time() - room.get("started_at", time.time())),
+            "new_record":       False,
+            "abandoned_by":     room.get("abandoned_by"),
         })
     elif room["status"] == "lobby":
         await _send_to(websocket, {
@@ -425,28 +479,24 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
                 if room.get("status") != "in_game":
                     continue
 
-                # Find the submitting player's username
                 submitter_username = next(
                     (p["username"] for p in room["players"] if p["email"] == email),
                     email
                 )
 
-                # Advance game state
-                config = SURVIVAL_CONFIG[room["difficulty"]]
                 room["exercises_solved"] += 1
-                room["time_left"] = min(room["time_left"] + config["bonus"], 300.0)
-                room["exercise_num"] += 1
+                room["time_left"]        += SURVIVAL_BONUS
+                room["exercise_num"]     += 1
 
-                # Pick next exercise
-                next_exercise = await _pick_exercise()
-                room["exercise"] = next_exercise
-                room["current_code"] = ""  # Reset shared code on new exercise
+                next_exercise = await _pick_survival_exercise(room["exercise_num"])
+                room["exercise"]      = next_exercise
+                room["current_code"]  = ""
 
                 await _broadcast(room, {
                     "type":          "exercise_solved",
                     "solved_by":     submitter_username,
                     "next_exercise": _exercise_payload(next_exercise),
-                    "time_added":    config["bonus"],
+                    "time_added":    SURVIVAL_BONUS,
                     "time_left":     room["time_left"],
                     "exercise_num":  room["exercise_num"],
                 })
@@ -500,7 +550,6 @@ async def survival_ws(websocket: WebSocket, room_id: str, token: str = Query(...
                 "players": _room_players_payload(room),
             })
         elif room.get("status") == "in_game":
-            # 5-second grace period: end game if player doesn't reconnect
             async def _grace_end(r_id=room_id, e=email):
                 await asyncio.sleep(5)
                 r = survival_rooms.get(r_id)
