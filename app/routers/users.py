@@ -126,6 +126,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
         "solved_count":        len(user.get("solved_exercises", [])),
         "lang_stats":          user.get("lang_stats", {}),
         "subscription_plan":   user.get("subscription_plan"),
+        "profile_settings":    user.get("profile_settings", {}),
         "tournaments_joined":      user.get("tournaments_joined", 0),
         "tournament_wins":         user.get("tournament_wins", 0),
         "tournament_match_wins":   user.get("tournament_match_wins", 0),
@@ -525,6 +526,7 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         "social_links":        user.get("social_links", {}),
         "lang_stats":          user.get("lang_stats", {}),
         "subscription_plan":   user.get("subscription_plan"),
+        "profile_settings":    user.get("profile_settings", {}),
         "friendship_status": {
             "is_self": is_self,
             "is_friend": is_friend,
@@ -665,6 +667,30 @@ class SocialLinksUpdate(BaseModel):
     codeforces: Optional[str] = None
     instagram:  Optional[str] = None
     tiktok:     Optional[str] = None
+
+
+class ProfileSettingsUpdate(BaseModel):
+    box_style:  Optional[str] = None  # transparent | semi | solid
+    bg_vis:     Optional[str] = None  # full | mid | dim
+    banner_vis: Optional[str] = None  # full | mid | dim
+
+
+_VALID_BOX_STYLES  = {"transparent", "semi", "solid"}
+_VALID_VIS_OPTIONS = {"full", "mid", "dim"}
+
+
+@router.post("/api/user/update-profile-settings")
+async def update_profile_settings(body: ProfileSettingsUpdate, email: str = Depends(get_current_user)):
+    patch = {}
+    if body.box_style  in _VALID_BOX_STYLES:
+        patch["profile_settings.box_style"]  = body.box_style
+    if body.bg_vis     in _VALID_VIS_OPTIONS:
+        patch["profile_settings.bg_vis"]     = body.bg_vis
+    if body.banner_vis in _VALID_VIS_OPTIONS:
+        patch["profile_settings.banner_vis"] = body.banner_vis
+    if patch:
+        await database.db.users.update_one({"email": email}, {"$set": patch})
+    return {"status": "success"}
 
 
 @router.post("/api/user/update-socials")
