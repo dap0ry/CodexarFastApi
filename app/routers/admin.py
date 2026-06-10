@@ -97,3 +97,47 @@ async def delete_exercise(exercise_id: str, admin: dict = Depends(require_admin)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Ejercicio no encontrado")
     return {"message": "Ejercicio eliminado"}
+
+
+_PROGRESS_RESET = {
+    "elo": 0,
+    "max_elo": 0,
+    "wins": 0,
+    "matches_played": 0,
+    "win_streak": 0,
+    "ranked_wins": 0,
+    "solved_exercises": [],
+    "bot_wins": 0,
+    "bot_matches": 0,
+    "bot_wins_by_diff": {},
+    "bot_matches_by_diff": {},
+    "coins": 0,
+    "lang_stats": {},
+    "survival_stats": {},
+    "survival_games": 0,
+    "equipped_achievements": [],
+    "tournaments_joined": 0,
+    "tournament_wins": 0,
+    "tournament_match_wins": 0,
+    "tournament_match_losses": 0,
+}
+
+
+@router.post("/reset-user/{username}")
+async def reset_user_progress(username: str, admin: dict = Depends(require_admin)):
+    result = await database.db.users.update_one(
+        {"username": username},
+        {"$set": _PROGRESS_RESET}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": f"Progreso de {username} restablecido"}
+
+
+@router.post("/reset-all-users")
+async def reset_all_users_progress(admin: dict = Depends(require_admin)):
+    result = await database.db.users.update_many(
+        {"is_onboarded": True},
+        {"$set": _PROGRESS_RESET}
+    )
+    return {"message": f"Progreso restablecido para {result.modified_count} usuarios"}
