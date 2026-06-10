@@ -495,6 +495,19 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
     request_sent = user_email in (viewer.get("friend_requests_sent", []) if viewer else [])
     request_received = user_email in (viewer.get("friend_requests_received", []) if viewer else [])
 
+    # Team lookup
+    team_doc = await database.db.teams.find_one(
+        {"members": username},
+        {"_id": 1, "name": 1, "photo_url": 1}
+    )
+    team_info = None
+    if team_doc:
+        team_info = {
+            "id": str(team_doc["_id"]),
+            "name": team_doc.get("name", ""),
+            "photo_url": team_doc.get("photo_url"),
+        }
+
     return {
         "username": user.get("username"),
         "avatar": user.get("avatar"),
@@ -544,6 +557,7 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
         "tournament_winrate":      round(user.get("tournament_wins", 0) / user.get("tournaments_joined", 1) * 100) if user.get("tournaments_joined", 0) > 0 else 0,
         "tournament_match_wins":   user.get("tournament_match_wins", 0),
         "tournament_match_losses": user.get("tournament_match_losses", 0),
+        "team": team_info,
     }
 
 
