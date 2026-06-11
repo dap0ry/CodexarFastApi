@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+import string
 import time
 import uuid
 
@@ -16,6 +17,14 @@ router = APIRouter()
 # ── In-memory stores ──────────────────────────────────────────────────────────
 survival_rooms: dict = {}    # { room_id: room_data }
 survival_invites: dict = {}  # { invite_id: invite_data }
+
+
+def _generate_join_code() -> str:
+    existing = {r.get("join_code") for r in survival_rooms.values()}
+    while True:
+        code = ''.join(random.choices(string.ascii_uppercase, k=6))
+        if code not in existing:
+            return code
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 SURVIVAL_START_TIME = 1800   # 30 minutes
@@ -221,9 +230,11 @@ async def create_room(email: str = Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=401, detail="No autorizado")
 
-    room_id = str(uuid.uuid4())
+    room_id   = str(uuid.uuid4())
+    join_code = _generate_join_code()
     survival_rooms[room_id] = {
         "room_id":          room_id,
+        "join_code":        join_code,
         "host_email":       email,
         "difficulty":       "survival",
         "status":           "lobby",
@@ -242,6 +253,51 @@ async def create_room(email: str = Depends(get_current_user)):
         "started_at":       None,
         "timer_task":       None,
     }
+    return {"room_id": room_id, "join_code": join_code}
+
+
+@router.get("/api/survival/room/by-code/{code}")
+async def get_room_by_code(code: str, email: str = Depends(get_current_user)):
+    code = code.strip().upper()
+    for room_id, room in survival_rooms.items():
+        if room.get("join_code") == code and room["status"] == "lobby":
+            return {
+                "room_id":   room_id,
+                "join_code": code,
+                "players":   _room_players_payload(room),
+            }
+    raise HTTPException(status_code=404, detail="Sala no encontrada o ya iniciada")
+
+
+@router.post("/api/survival/room/{room_id}/join")
+async def join_room(room_id: str, email: str = Depends(get_current_user)):
+    room = survival_rooms.get(room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala no encontrada")
+    if room["status"] != "lobby":
+        raise HTTPException(status_code=400, detail="La partida ya fue iniciada")
+    if len(room["players"]) >= 4:
+        raise HTTPException(status_code=400, detail="La sala está llena")
+
+    player_emails = [p["email"] for p in room["players"]]
+    if email in player_emails:
+        return {"room_id": room_id}
+
+    user = await database.db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    room["players"].append({
+        "email":    email,
+        "username": user.get("username", ""),
+        "avatar":   user.get("avatar", ""),
+    })
+
+    await _broadcast(room, {
+        "type":    "player_joined",
+        "players": _room_players_payload(room),
+    })
+
     return {"room_id": room_id}
 
 
