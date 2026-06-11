@@ -102,6 +102,29 @@ async def list_teams(email: str = Depends(get_current_user)):
     return result
 
 
+@router.get("/api/teams/leaderboard")
+async def teams_leaderboard(email: str = Depends(get_current_user)):
+    cursor = database.db.teams.find({}, {"name": 1, "photo_url": 1, "members": 1})
+    teams = await cursor.to_list(length=None)
+    result = []
+    for team in teams:
+        members = team.get("members", [])
+        total_solved = 0
+        if members:
+            async for u in database.db.users.find(
+                {"username": {"$in": members}}, {"solved_exercises": 1}
+            ):
+                total_solved += len(u.get("solved_exercises", []))
+        result.append({
+            "name":         team["name"],
+            "photo_url":    team.get("photo_url"),
+            "member_count": len(members),
+            "total_solved": total_solved,
+        })
+    result.sort(key=lambda x: x["total_solved"], reverse=True)
+    return result[:10]
+
+
 @router.get("/api/teams/mine")
 async def my_team(email: str = Depends(get_current_user)):
     user = await _get_user(email)
