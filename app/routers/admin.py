@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -14,15 +16,31 @@ class SetRoleBody(BaseModel):
     role: str
 
 
+def _relative_time(dt) -> str:
+    if dt is None:
+        return "Nunca conectado"
+    diff = (datetime.utcnow() - dt).total_seconds()
+    if diff < 120:      return "En línea"
+    if diff < 3600:     return f"hace {int(diff // 60)} min"
+    if diff < 86400:    return f"hace {int(diff // 3600)} h"
+    if diff < 604800:   return f"hace {int(diff // 86400)} días"
+    if diff < 2592000:  return f"hace {int(diff // 604800)} semanas"
+    return f"hace {int(diff // 2592000)} meses"
+
+
 def _clean_user(u: dict) -> dict:
+    last_seen = u.get("last_seen")
+    is_online = last_seen is not None and (datetime.utcnow() - last_seen).total_seconds() < 120
     return {
-        "id":         str(u["_id"]),
-        "username":   u.get("username", "—"),
-        "email":      u.get("email", ""),
-        "role":       u.get("role", "user"),
-        "is_banned":  u.get("is_banned", False),
-        "elo":        u.get("elo", 0),
-        "created_at": str(u.get("created_at", "")),
+        "id":             str(u["_id"]),
+        "username":       u.get("username", "—"),
+        "email":          u.get("email", ""),
+        "role":           u.get("role", "user"),
+        "is_banned":      u.get("is_banned", False),
+        "elo":            u.get("elo", 0),
+        "created_at":     str(u.get("created_at", "")),
+        "is_online":      is_online,
+        "last_seen_text": _relative_time(last_seen),
     }
 
 
