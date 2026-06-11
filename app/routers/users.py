@@ -396,6 +396,27 @@ async def get_leaderboard_all(
     return {"players": result, "total": total, "skip": skip}
 
 
+@router.get("/api/leaderboard/solvers")
+async def get_leaderboard_solvers(email: str = Depends(get_current_user)):
+    pipeline = [
+        {"$match": {"is_onboarded": True}},
+        {"$project": {
+            "username": 1, "avatar": 1,
+            "solved_count": {"$size": {"$ifNull": ["$solved_exercises", []]}}
+        }},
+        {"$sort": {"solved_count": -1}},
+        {"$limit": 10},
+    ]
+    players = []
+    async for u in database.db.users.aggregate(pipeline):
+        players.append({
+            "username": u.get("username", "?"),
+            "avatar":   u.get("avatar"),
+            "solved":   u.get("solved_count", 0),
+        })
+    return {"players": players}
+
+
 @router.post("/api/user/heartbeat")
 async def heartbeat(email: str = Depends(get_current_user)):
     await database.db.users.update_one(
