@@ -137,7 +137,7 @@ async def get_friends_lists(email: str = Depends(get_current_user)):
         if dt is None:
             return "Nunca conectado"
         diff = (datetime.utcnow() - dt).total_seconds()
-        if diff < 120:      return "En línea"
+        if diff < 420:      return "En línea"
         if diff < 3600:     return f"hace {int(diff // 60)} min"
         if diff < 86400:    return f"hace {int(diff // 3600)} h"
         if diff < 604800:   return f"hace {int(diff // 86400)} días"
@@ -151,7 +151,7 @@ async def get_friends_lists(email: str = Depends(get_current_user)):
         users_arr = []
         async for u in cursor:
             last_seen = u.get("last_seen")
-            is_online = last_seen is not None and (datetime.utcnow() - last_seen).total_seconds() < 120
+            is_online = last_seen is not None and (datetime.utcnow() - last_seen).total_seconds() < 420
             users_arr.append({
                 "username": u.get("username"),
                 "avatar": u.get("avatar"),

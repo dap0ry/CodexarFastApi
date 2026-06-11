@@ -20,7 +20,7 @@ def _relative_time(dt) -> str:
     if dt is None:
         return "Nunca conectado"
     diff = (datetime.utcnow() - dt).total_seconds()
-    if diff < 120:      return "En línea"
+    if diff < 420:      return "En línea"
     if diff < 3600:     return f"hace {int(diff // 60)} min"
     if diff < 86400:    return f"hace {int(diff // 3600)} h"
     if diff < 604800:   return f"hace {int(diff // 86400)} días"
@@ -30,7 +30,7 @@ def _relative_time(dt) -> str:
 
 def _clean_user(u: dict) -> dict:
     last_seen = u.get("last_seen")
-    is_online = last_seen is not None and (datetime.utcnow() - last_seen).total_seconds() < 120
+    is_online = last_seen is not None and (datetime.utcnow() - last_seen).total_seconds() < 420
     return {
         "id":             str(u["_id"]),
         "username":       u.get("username", "—"),
