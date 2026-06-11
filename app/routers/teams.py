@@ -315,6 +315,29 @@ async def decline_invite(team_id: str, email: str = Depends(get_current_user)):
     return {"message": "Invitación rechazada."}
 
 
+@router.post("/api/teams/{team_id}/join")
+async def join_team(team_id: str, email: str = Depends(get_current_user)):
+    from bson import ObjectId
+    user = await _get_user(email)
+    username = user.get("username", "")
+    try:
+        oid = ObjectId(team_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    team = await database.db.teams.find_one({"_id": oid})
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    if username in team.get("members", []):
+        raise HTTPException(status_code=400, detail="Ya eres miembro de este equipo")
+    if len(team.get("members", [])) >= MAX_MEMBERS:
+        raise HTTPException(status_code=400, detail=f"El equipo está lleno ({MAX_MEMBERS} miembros máximo)")
+    other = await database.db.teams.find_one({"members": username})
+    if other:
+        raise HTTPException(status_code=400, detail="Ya perteneces a otro equipo. Sal primero antes de unirte.")
+    await database.db.teams.update_one({"_id": oid}, {"$addToSet": {"members": username}})
+    return {"message": f"Te has unido al equipo {team.get('name')}."}
+
+
 @router.post("/api/teams/{team_id}/leave")
 async def leave_team(team_id: str, email: str = Depends(get_current_user)):
     from bson import ObjectId
