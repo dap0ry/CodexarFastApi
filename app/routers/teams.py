@@ -494,6 +494,27 @@ async def upload_team_background(team_id: str, bg: UploadFile = File(...), email
         raise HTTPException(status_code=500, detail="Error subiendo el fondo del equipo")
 
 
+@router.delete("/api/teams/{team_id}/images/{field}")
+async def clear_team_image(team_id: str, field: str, email: str = Depends(get_current_user)):
+    from bson import ObjectId
+    field_map = {"photo": "photo_url", "banner": "banner_url", "background": "background_url"}
+    if field not in field_map:
+        raise HTTPException(status_code=400, detail="Campo inválido. Usa: photo, banner o background")
+    user = await _get_user(email)
+    username = user.get("username", "")
+    try:
+        oid = ObjectId(team_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    team = await database.db.teams.find_one({"_id": oid})
+    if not team:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    if team.get("owner") != username:
+        raise HTTPException(status_code=403, detail="Solo el capitán puede modificar las imágenes")
+    await database.db.teams.update_one({"_id": oid}, {"$unset": {field_map[field]: ""}})
+    return {"message": "Imagen eliminada."}
+
+
 @router.delete("/api/teams/{team_id}/members/{username}")
 async def kick_member(team_id: str, username: str, email: str = Depends(get_current_user)):
     from bson import ObjectId
