@@ -1,4 +1,5 @@
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Depends
 
@@ -168,6 +169,45 @@ async def get_friends_lists(email: str = Depends(get_current_user)):
         "sent": await get_users_info(sent_emails),
         "received": await get_users_info(received_emails)
     }
+
+
+@router.post("/api/friends/generate-invite")
+async def generate_invite(email: str = Depends(get_current_user)):
+    token = secrets.token_urlsafe(24)
+    await database.db.friend_invites.insert_one({
+        "token": token,
+        "owner_email": email,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(days=7),
+        "used": False,
+    })
+    url = f"https://codexar.es/amigo?inv={token}"
+    return {"token": token, "url": url}
+
+
+@router.get("/api/friends/use-invite/{token}")
+async def use_invite(token: str, email: str = Depends(get_current_user)):
+    invite = await database.db.friend_invites.find_one({"token": token, "used": False})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Enlace inválido o ya usado")
+    if datetime.utcnow() > invite["expires_at"]:
+        raise HTTPException(status_code=400, detail="El enlace ha expirado")
+
+    owner_email = invite["owner_email"]
+    if owner_email == email:
+        raise HTTPException(status_code=400, detail="No puedes usar tu propio enlace de invitación")
+
+    # Add both as friends immediately (no request flow)
+    await database.db.users.update_one({"email": email}, {"$addToSet": {"friends": owner_email}})
+    await database.db.users.update_one({"email": owner_email}, {"$addToSet": {"friends": email}})
+    await database.db.users.update_many(
+        {"email": {"$in": [email, owner_email]}},
+        {"$pull": {"friend_requests_sent": {"$in": [email, owner_email]}, "friend_requests_received": {"$in": [email, owner_email]}}}
+    )
+    await database.db.friend_invites.update_one({"token": token}, {"$set": {"used": True, "used_by": email}})
+
+    owner = await database.db.users.find_one({"email": owner_email}, {"username": 1})
+    return {"message": f"Ahora eres amigo de {owner.get('username', owner_email)}" if owner else "¡Amigo añadido!"}
 
 
 @router.delete("/api/friends/{target_username}")
