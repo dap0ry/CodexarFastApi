@@ -157,42 +157,98 @@ async def create_tournament(
 async def list_tournaments(email: str = Depends(get_current_user)):
     cursor = database.db.tournaments.find({}).sort("created_at", -1)
     docs = await cursor.to_list(length=50)
-    result = []
+
+    # First pass: auto-finish check, collect all emails and exercise IDs
+    processed = []
+    all_emails: set = set()
+    all_ex_ids: set = set()
+
     for doc in docs:
         doc = _oid(doc)
-        doc.pop("submissions", None)
-        doc.pop("finished_participants", None)
         oid = ObjectId(doc["id"])
         doc = await _check_auto_finish(doc, oid)
+        for pe in doc.get("participants", []):
+            all_emails.add(pe)
+        if doc.get("winner_email"):
+            all_emails.add(doc["winner_email"])
+        for ex_id in doc.get("exercises", []):
+            all_ex_ids.add(ex_id)
+        processed.append((doc, oid))
 
+    # Batch fetch all users in one query
+    user_cache: dict = {}
+    if all_emails:
+        async for u in database.db.users.find(
+            {"email": {"$in": list(all_emails)}},
+            {"email": 1, "username": 1, "avatar": 1, "_id": 0},
+        ):
+            user_cache[u["email"]] = {
+                "email": u["email"],
+                "username": u.get("username", u["email"]),
+                "avatar": u.get("avatar"),
+            }
+
+    # Batch fetch all exercises in one query
+    ex_cache: dict = {}
+    if all_ex_ids:
+        valid_oids = []
+        for ex_id in all_ex_ids:
+            try:
+                valid_oids.append(ObjectId(ex_id))
+            except Exception:
+                pass
+        if valid_oids:
+            async for ex in database.db.exercises.find(
+                {"_id": {"$in": valid_oids}},
+                {"title": 1, "difficulty": 1, "category": 1, "title_i18n": 1},
+            ):
+                ex_cache[str(ex["_id"])] = {
+                    "id": str(ex["_id"]),
+                    "title": ex.get("title", ""),
+                    "title_i18n": ex.get("title_i18n"),
+                    "difficulty": ex.get("difficulty", 800),
+                    "category": ex.get("category", ""),
+                }
+
+    result = []
+    for doc, oid in processed:
+        subs = doc.pop("submissions", [])
+        doc.pop("finished_participants", None)
+
+        participants = doc.get("participants", [])
+
+        # Participants info from cache (no extra queries)
+        doc["participants_info"] = [
+            user_cache.get(pe, {"email": pe, "username": pe, "avatar": None})
+            for pe in participants
+        ]
+
+        # Exercises info from cache
+        doc["exercises_info"] = [
+            ex_cache[ex_id]
+            for ex_id in doc.get("exercises", [])
+            if ex_id in ex_cache
+        ]
+
+        # Winner: compute lazily for finished tournaments using in-memory submissions
         we = doc.get("winner_email")
-        if not we and doc.get("status") == "finished":
-            # Compute winner lazily
-            t_full = await database.db.tournaments.find_one({"_id": oid})
-            if t_full:
-                subs = t_full.get("submissions", [])
-                pts = t_full.get("participants", [])
-                if pts:
-                    p_info = []
-                    async for u in database.db.users.find(
-                        {"email": {"$in": pts}}, {"email": 1, "username": 1, "avatar": 1}
-                    ):
-                        p_info.append({"email": u["email"], "username": u.get("username", u["email"]), "avatar": u.get("avatar")})
-                    board = _compute_leaderboard(subs, p_info)
-                    if board:
-                        we = board[0]["email"]
-                        await database.db.tournaments.update_one(
-                            {"_id": oid}, {"$set": {"winner_email": we}}
-                        )
-                        doc["winner_email"] = we
+        if not we and doc.get("status") == "finished" and participants:
+            p_info = [
+                user_cache.get(pe, {"email": pe, "username": pe, "avatar": None})
+                for pe in participants
+            ]
+            board = _compute_leaderboard(subs, p_info)
+            if board:
+                we = board[0]["email"]
+                doc["winner_email"] = we
+                await database.db.tournaments.update_one(
+                    {"_id": oid}, {"$set": {"winner_email": we}}
+                )
 
         if we:
-            wu = await database.db.users.find_one({"email": we}, {"username": 1, "avatar": 1})
-            doc["winner"] = {
-                "email": we,
-                "username": wu.get("username", we) if wu else we,
-                "avatar": wu.get("avatar") if wu else None,
-            }
+            wu = user_cache.get(we, {"email": we, "username": we, "avatar": None})
+            doc["winner"] = {"email": we, "username": wu["username"], "avatar": wu["avatar"]}
+
         result.append(doc)
     return result
 
