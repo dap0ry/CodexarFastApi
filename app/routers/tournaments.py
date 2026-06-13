@@ -98,6 +98,25 @@ class SubmitExerciseRequest(BaseModel):
     language: str
 
 
+class TournamentExerciseList(BaseModel):
+    exercise_ids: list
+
+
+class TournamentExerciseCreate(BaseModel):
+    title: str
+    description: str
+    difficulty: int = 1200
+    category: str = "Otros"
+    test_cases: list
+    stub_python: str = ""
+    stub_cpp: str = ""
+    stub_java: str = ""
+    stub_go: str = ""
+    stub_csharp: str = ""
+    title_i18n: dict | None = None
+    description_i18n: dict | None = None
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/api/tournaments")
@@ -503,6 +522,94 @@ async def finish_participation(
         {"$addToSet": {"finished_participants": email}}
     )
     return {"message": "Torneo entregado. Tu puntuación ha sido registrada."}
+
+
+@router.put("/api/tournaments/{tournament_id}/exercises")
+async def set_tournament_exercises(
+    tournament_id: str,
+    body: TournamentExerciseList,
+    admin: dict = Depends(require_admin),
+):
+    """Replace the exercise list for an upcoming tournament (max 6)."""
+    try:
+        oid = ObjectId(tournament_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+
+    tournament = await database.db.tournaments.find_one({"_id": oid})
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Torneo no encontrado")
+    if tournament.get("status") != "upcoming":
+        raise HTTPException(status_code=400, detail="Solo se pueden modificar torneos pendientes")
+
+    ex_ids = list(dict.fromkeys(str(e) for e in body.exercise_ids))[:6]
+
+    if ex_ids:
+        valid_oids = []
+        for ex_id in ex_ids:
+            try:
+                valid_oids.append(ObjectId(ex_id))
+            except Exception:
+                raise HTTPException(status_code=400, detail=f"ID de ejercicio inválido: {ex_id}")
+        found = await database.db.exercises.count_documents({"_id": {"$in": valid_oids}})
+        if found != len(valid_oids):
+            raise HTTPException(status_code=404, detail="Algún ejercicio no existe")
+
+    await database.db.tournaments.update_one({"_id": oid}, {"$set": {"exercises": ex_ids}})
+    return {"message": "Ejercicios actualizados.", "count": len(ex_ids)}
+
+
+@router.post("/api/tournaments/{tournament_id}/exercises/create")
+async def create_tournament_exercise(
+    tournament_id: str,
+    body: TournamentExerciseCreate,
+    admin: dict = Depends(require_admin),
+):
+    """Create a tournament-only exercise and add it to the tournament."""
+    try:
+        oid = ObjectId(tournament_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+
+    tournament = await database.db.tournaments.find_one({"_id": oid})
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Torneo no encontrado")
+    if tournament.get("status") != "upcoming":
+        raise HTTPException(status_code=400, detail="Solo se pueden modificar torneos pendientes")
+
+    current = tournament.get("exercises", [])
+    if len(current) >= 6:
+        raise HTTPException(status_code=400, detail="El torneo ya tiene el máximo de 6 ejercicios")
+
+    stub = {}
+    if body.stub_python: stub["python"] = body.stub_python
+    if body.stub_cpp:    stub["cpp"]    = body.stub_cpp
+    if body.stub_java:   stub["java"]   = body.stub_java
+    if body.stub_go:     stub["go"]     = body.stub_go
+    if body.stub_csharp: stub["csharp"] = body.stub_csharp
+
+    doc = {
+        "title": body.title.strip(),
+        "description": body.description.strip(),
+        "difficulty": body.difficulty,
+        "category": body.category,
+        "test_cases": [{"input": tc["input"], "expected_output": tc["expected_output"]} for tc in body.test_cases],
+        "stub": stub,
+        "title_i18n": body.title_i18n or {"es": body.title, "en": "", "zh": ""},
+        "description_i18n": body.description_i18n or {"es": body.description, "en": "", "zh": ""},
+        "created_by": admin["email"],
+        "created_at": datetime.utcnow(),
+        "tournament_only": True,
+        "solvers": [],
+        "first_solver_email": None,
+    }
+    result = await database.db.exercises.insert_one(doc)
+    ex_id = str(result.inserted_id)
+
+    await database.db.tournaments.update_one(
+        {"_id": oid}, {"$push": {"exercises": ex_id}}
+    )
+    return {"message": "Ejercicio creado y añadido al torneo.", "exercise_id": ex_id}
 
 
 @router.delete("/api/tournaments/{tournament_id}")

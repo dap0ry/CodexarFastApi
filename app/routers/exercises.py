@@ -533,7 +533,7 @@ async def get_exercises(email: str = Depends(get_current_user)):
     solved_ids = set(user.get("solved_exercises", []))
     friends_emails = set(user.get("friends", []))
 
-    exercises_cursor = database.db.exercises.find()
+    exercises_cursor = database.db.exercises.find({"tournament_only": {"$ne": True}})
     exercises = []
     async for ex in exercises_cursor:
         ex_id = str(ex["_id"])
@@ -591,6 +591,25 @@ async def get_random_exercise(email: str = Depends(get_current_user)):
     del ex["_id"]
     ex["solved"] = ex["id"] in solved_ids
     return ex
+
+
+@router.get("/api/exercises/catalog")
+async def get_exercise_catalog(email: str = Depends(get_current_user)):
+    """Lightweight exercise list for tournament exercise picker."""
+    cursor = database.db.exercises.find(
+        {"tournament_only": {"$ne": True}},
+        {"title": 1, "difficulty": 1, "category": 1, "title_i18n": 1},
+    ).sort("difficulty", 1)
+    result = []
+    async for ex in cursor:
+        result.append({
+            "id": str(ex["_id"]),
+            "title": ex.get("title", ""),
+            "title_i18n": ex.get("title_i18n"),
+            "difficulty": ex.get("difficulty", 800),
+            "category": ex.get("category", ""),
+        })
+    return result
 
 
 @router.get("/api/exercises/{exercise_id}")
