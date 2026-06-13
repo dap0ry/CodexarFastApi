@@ -26,8 +26,9 @@ def _oid(doc: dict) -> dict:
     return doc
 
 
-def _compute_leaderboard(submissions: list, participants_info: list) -> list:
+def _compute_leaderboard(submissions: list, participants_info: list, finished_set: set = None, cap: int = 10) -> list:
     """Rank participants by total_score DESC, then total_time ASC (tiebreaker)."""
+    finished_set = finished_set or set()
     user_map = {p["email"]: p for p in participants_info}
     scores: dict = {}
     for sub in submissions:
@@ -47,17 +48,26 @@ def _compute_leaderboard(submissions: list, participants_info: list) -> list:
     for email, data in scores.items():
         seen.add(email)
         info = user_map.get(email, {"email": email, "username": email, "avatar": None})
+        solved_count = len(data["solved"])
+        if email in finished_set:
+            status = "finished"
+        elif solved_count > 0:
+            status = "competing"
+        else:
+            status = "not_started"
         board.append({
             "email": email,
             "username": info.get("username", email),
             "avatar": info.get("avatar"),
             "total_score": data["total_score"],
             "total_time": data["total_time"],
-            "exercises_solved": len(data["solved"]),
+            "exercises_solved": solved_count,
+            "status": status,
         })
 
     for p in participants_info:
         if p["email"] not in seen:
+            status = "finished" if p["email"] in finished_set else "not_started"
             board.append({
                 "email": p["email"],
                 "username": p.get("username", p["email"]),
@@ -65,10 +75,11 @@ def _compute_leaderboard(submissions: list, participants_info: list) -> list:
                 "total_score": 0,
                 "total_time": 0,
                 "exercises_solved": 0,
+                "status": status,
             })
 
     board.sort(key=lambda x: (-x["total_score"], x["total_time"]))
-    return board[:10]
+    return board if cap == 0 else board[:cap]
 
 
 async def _check_auto_finish(tournament: dict, oid: ObjectId) -> dict:
@@ -320,16 +331,17 @@ async def get_tournament(tournament_id: str, email: str = Depends(get_current_us
             pass
     tournament["exercises_info"] = exercises_info
 
-    # Leaderboard
+    # Leaderboard (full, no cap — frontend slices top 5 and shows user's own row)
     submissions = tournament.get("submissions", [])
-    tournament["leaderboard"] = _compute_leaderboard(submissions, participants_info)
+    finished_set = set(tournament.get("finished_participants", []))
+    tournament["leaderboard"] = _compute_leaderboard(submissions, participants_info, finished_set=finished_set, cap=0)
 
     # My solved exercises (for the app)
     my_solved = {s["exercise_id"] for s in submissions if s.get("email") == email and s.get("passed")}
     tournament["my_solved_exercises"] = list(my_solved)
 
     # Has user finished
-    tournament["i_finished"] = email in tournament.get("finished_participants", [])
+    tournament["i_finished"] = email in finished_set
 
     # Winner
     we = tournament.get("winner_email")
