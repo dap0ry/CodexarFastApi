@@ -159,3 +159,31 @@ async def reset_all_users_progress(admin: dict = Depends(require_admin)):
         {"$set": _PROGRESS_RESET}
     )
     return {"message": f"Progreso restablecido para {result.modified_count} usuarios"}
+
+
+@router.delete("/users/{username}")
+async def delete_user_account(username: str, admin: dict = Depends(require_admin)):
+    if username == admin.get("username"):
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta")
+    user = await database.db.users.find_one({"username": username}, {"email": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    email = user.get("email")
+    await database.db.users.delete_one({"username": username})
+    if email:
+        await database.db.users.update_many(
+            {"friends": email},
+            {"$pull": {"friends": email}}
+        )
+        await database.db.users.update_many(
+            {"friend_requests": email},
+            {"$pull": {"friend_requests": email}}
+        )
+        await database.db.tournaments.update_many(
+            {"participants": email},
+            {"$pull": {"participants": email}}
+        )
+        await database.db.friend_invites.delete_many(
+            {"$or": [{"owner_email": email}, {"used_by": email}]}
+        )
+    return {"message": f"Cuenta de {username} eliminada permanentemente"}
