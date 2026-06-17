@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import cloudinary.uploader
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -186,4 +187,14 @@ async def delete_user_account(username: str, admin: dict = Depends(require_admin
         await database.db.friend_invites.delete_many(
             {"$or": [{"owner_email": email}, {"used_by": email}]}
         )
+        safe_id = email.replace("@", "_at_").replace(".", "_")
+        for public_id in [
+            f"Codexar/ProfilePictures/{safe_id}",
+            f"Codexar/ProfileBackgrounds/{safe_id}_bg",
+            f"Codexar/ProfileBanners/{safe_id}_banner",
+        ]:
+            try:
+                cloudinary.uploader.destroy(public_id, invalidate=True)
+            except Exception:
+                pass
     return {"message": f"Cuenta de {username} eliminada permanentemente"}
