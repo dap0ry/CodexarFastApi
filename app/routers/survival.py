@@ -77,13 +77,15 @@ def _room_players_payload(room: dict) -> list:
 
 def _exercise_payload(ex: dict) -> dict:
     return {
-        "id":          ex.get("id", ""),
-        "title":       ex.get("title", ""),
-        "difficulty":  ex.get("difficulty", ""),
-        "category":    ex.get("category", ""),
-        "description": ex.get("description", ""),
-        "test_cases":  ex.get("test_cases", []),
-        "stub":        ex.get("stub", {}),
+        "id":               ex.get("id", ""),
+        "title":            ex.get("title", ""),
+        "title_i18n":       ex.get("title_i18n", {}),
+        "difficulty":       ex.get("difficulty", ""),
+        "category":         ex.get("category", ""),
+        "description":      ex.get("description", ""),
+        "description_i18n": ex.get("description_i18n", {}),
+        "test_cases":       ex.get("test_cases", []),
+        "stub":             ex.get("stub", {}),
     }
 
 
@@ -106,17 +108,23 @@ async def _pick_survival_exercise(exercise_num: int) -> dict:
     db_exercise = await database.db.exercises.find_one({"title": chosen_ex["title"]})
     if db_exercise:
         chosen_ex["id"] = str(db_exercise["_id"])
+        if "title_i18n" in db_exercise:
+            chosen_ex["title_i18n"] = db_exercise["title_i18n"]
+        if "description_i18n" in db_exercise:
+            chosen_ex["description_i18n"] = db_exercise["description_i18n"]
     else:
         db_exercise = await database.db.exercises.find_one({"test_cases": {"$exists": True, "$ne": []}})
         if db_exercise:
             chosen_ex = {
-                "title":       db_exercise.get("title", chosen_ex["title"]),
-                "description": db_exercise.get("description", chosen_ex["description"]),
-                "difficulty":  db_exercise.get("difficulty", chosen_ex["difficulty"]),
-                "category":    db_exercise.get("category", chosen_ex["category"]),
-                "test_cases":  db_exercise.get("test_cases", []),
-                "stub":        db_exercise.get("stub", {}),
-                "id":          str(db_exercise["_id"]),
+                "title":            db_exercise.get("title", chosen_ex["title"]),
+                "title_i18n":       db_exercise.get("title_i18n", {}),
+                "description":      db_exercise.get("description", chosen_ex["description"]),
+                "description_i18n": db_exercise.get("description_i18n", {}),
+                "difficulty":       db_exercise.get("difficulty", chosen_ex["difficulty"]),
+                "category":         db_exercise.get("category", chosen_ex["category"]),
+                "test_cases":       db_exercise.get("test_cases", []),
+                "stub":             db_exercise.get("stub", {}),
+                "id":               str(db_exercise["_id"]),
             }
     return chosen_ex
 
