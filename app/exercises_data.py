@@ -877,4 +877,1377 @@ EXERCISES_SEED = [
         },
     },
 
+    # ══════════════════════════════════════════
+    #  800 — El Tren Nocturno de Siberia
+    # ══════════════════════════════════════════
+    {
+        "title": "El Tren Nocturno de Siberia",
+        "difficulty": 800, "category": "Arrays", "total_solvers": 0,
+        "description": (
+            "En la helada noche siberiana, Alexei Petróvich trabaja como vigilante nocturno en la "
+            "estación de ferrocarril de Novosibirsk, una de las más concurridas de Rusia. Cada noche, "
+            "exactamente n trenes numerados del 1 al n deben cruzar por el andén principal. Alexei "
+            "lleva un registro minucioso de cada tren que pasa, anotando su número en un cuaderno "
+            "desgastado. Sin embargo, esta noche ocurrió algo inusual: debido a un fallo catastrófico "
+            "en el sistema de señalización digital, uno de los trenes cruzó el sensor dos veces "
+            "(registrándose por duplicado en la bitácora) mientras que otro tren tomó una vía de "
+            "desvío de emergencia y nunca fue detectado por el sensor principal.\n\n"
+            "Alexei tiene la lista de los n números de trenes que aparecen en su registro esta noche. "
+            "Sabe con total certeza que hay exactamente un número que aparece dos veces y exactamente "
+            "un número del rango [1, n] que no aparece en absoluto. Antes del amanecer debe entregar "
+            "el informe a su supervisor, identificando el tren duplicado y el tren ausente.\n\n"
+            "Formalmente:\n"
+            "  Se te da un array arr de n enteros. Cada entero está en el rango [1, n].\n"
+            "  Exactamente un número aparece dos veces y exactamente uno del rango [1,n] falta.\n"
+            "  Devuelve una lista [duplicado, faltante].\n\n"
+            "Restricciones:\n"
+            "  2 ≤ n ≤ 10^5\n"
+            "  1 ≤ arr[i] ≤ n\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: arr = [1, 2, 2, 4]\n"
+            "  Salida: [2, 3]\n"
+            "  El número 2 aparece dos veces. El 3 (esperado en [1..4]) no aparece.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: arr = [3, 1, 3, 4, 2]\n"
+            "  Salida: [3, 5]\n"
+            "  El número 3 aparece dos veces. El 5 (esperado en [1..5]) no aparece.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: arr = [2, 2]\n"
+            "  Salida: [2, 1]\n"
+            "  n=2: el 2 aparece dos veces y el 1 falta.\n\n"
+            "Pista: La suma esperada de [1..n] es n*(n+1)/2. La diferencia entre suma esperada y "
+            "suma real te da (faltante - duplicado). Con la suma de cuadrados puedes obtener ambos.\n\n"
+            "Escribe `solve(arr)` que devuelva [duplicado, faltante]."
+        ),
+        "test_cases": [
+            {"input": "[1, 2, 2, 4]",    "expected_output": "[2, 3]"},
+            {"input": "[3, 1, 3, 4, 2]", "expected_output": "[3, 5]"},
+            {"input": "[2, 2]",           "expected_output": "[2, 1]"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(arr):\n"
+                "    n = len(arr)\n"
+                "    # Pista: suma esperada = n*(n+1)//2\n"
+                "    # (faltante - duplicado) = suma_esperada - sum(arr)\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\nusing namespace std;\n"
+                "vector<int> solve(vector<int> arr) {\n"
+                "    int n = arr.size();\n"
+                "    // Usa suma y suma de cuadrados para hallar duplicado y faltante\n"
+                "    return {};\n"
+                "}"
+            ),
+            "Java": (
+                "public static int[] solve(int[] arr) {\n"
+                "    int n = arr.length;\n"
+                "    // Usa suma y suma de cuadrados para hallar duplicado y faltante\n"
+                "    return new int[]{};\n"
+                "}"
+            ),
+            "Go": (
+                "func solve(arr []int) []int {\n"
+                "    n := len(arr)\n"
+                "    _ = n\n"
+                "    return nil\n"
+                "}"
+            ),
+            "C#": (
+                "public static int[] Solve(int[] arr) {\n"
+                "    int n = arr.Length;\n"
+                "    return new int[]{};\n"
+                "}"
+            ),
+        },
+        "title_i18n": {"es": "El Tren Nocturno de Siberia", "en": "The Night Train of Siberia", "zh": "西伯利亚夜班火车"},
+        "description_i18n": {
+            "es": (
+                "Alexei registra n trenes numerados 1..n pero uno se registró dos veces y otro falta. "
+                "Dado el array arr de n enteros, devuelve [duplicado, faltante].\n\n"
+                "Restricciones: 2 ≤ n ≤ 10^5, 1 ≤ arr[i] ≤ n.\n\n"
+                "Ejemplo 1: [1,2,2,4] → [2,3]\n"
+                "Ejemplo 2: [3,1,3,4,2] → [3,5]\n"
+                "Ejemplo 3: [2,2] → [2,1]\n\n"
+                "Pista: suma esperada = n*(n+1)/2. La diferencia te da faltante - duplicado.\n\n"
+                "Escribe `solve(arr)` que devuelva [duplicado, faltante]."
+            ),
+            "en": (
+                "Alexei logs n trains numbered 1..n but one was logged twice and one is missing. "
+                "Given array arr of n integers, return [duplicate, missing].\n\n"
+                "Constraints: 2 ≤ n ≤ 10^5, 1 ≤ arr[i] ≤ n.\n\n"
+                "Example 1: [1,2,2,4] → [2,3]\n"
+                "Example 2: [3,1,3,4,2] → [3,5]\n"
+                "Example 3: [2,2] → [2,1]\n\n"
+                "Hint: expected sum = n*(n+1)/2. The difference gives missing - duplicate.\n\n"
+                "Write `solve(arr)` returning [duplicate, missing]."
+            ),
+            "zh": (
+                "给定 n 个整数的数组 arr（范围 [1,n]），其中一个数出现两次，一个数缺失。\n"
+                "返回 [重复数, 缺失数]。\n\n"
+                "提示：期望总和 = n*(n+1)/2。\n\n"
+                "示例 1：[1,2,2,4] → [2,3]\n示例 2：[3,1,3,4,2] → [3,5]\n\n"
+                "编写 `solve(arr)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  1000 — La Temporada de las Lluvias
+    # ══════════════════════════════════════════
+    {
+        "title": "La Temporada de las Lluvias",
+        "difficulty": 1000, "category": "Arrays", "total_solvers": 0,
+        "description": (
+            "La meteoróloga Masha trabaja en el Instituto Hidrológico de San Petersburgo. Durante la "
+            "temporada de lluvias, mide diariamente la altura del río local en milímetros. Tras semanas "
+            "de mediciones, obtiene una secuencia de n lecturas diarias. Masha está especialmente "
+            "interesada en los períodos de crecida sostenida: aquellos tramos consecutivos en los que "
+            "el nivel del río sube estrictamente cada día respecto al anterior.\n\n"
+            "Una crecida sostenida es una subsecuencia contigua maximal en la que cada elemento es "
+            "estrictamente mayor que el anterior. Masha quiere saber cuál es la duración (en días) de "
+            "la crecida sostenida más larga registrada, pues debe presentar este dato en su informe "
+            "trimestral ante el Comité de Gestión de Inundaciones.\n\n"
+            "Formalmente:\n"
+            "  Dado un array heights de n enteros, encuentra la longitud de la subsecuencia contigua "
+            "más larga estrictamente creciente.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ n ≤ 10^5\n"
+            "  0 ≤ heights[i] ≤ 10^9\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: heights = [3, 1, 2, 4, 3, 5]\n"
+            "  Salida: 3\n"
+            "  Explicación: El tramo [1, 2, 4] tiene longitud 3. [3,5] tiene longitud 2. "
+            "El máximo es 3.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: heights = [5, 4, 3, 2, 1]\n"
+            "  Salida: 1\n"
+            "  Explicación: El río bajó cada día, así que la mayor crecida dura solo 1 día.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: heights = [1, 2, 3, 4, 5]\n"
+            "  Salida: 5\n"
+            "  Explicación: Todo el período es una crecida continua.\n\n"
+            "Nota: La solución óptima es O(n): mantén un contador de racha actual y actualízalo "
+            "en cada paso, reiniciándolo cuando la secuencia deje de crecer.\n\n"
+            "Escribe `solve(heights)` que devuelva la longitud de la racha creciente más larga."
+        ),
+        "test_cases": [
+            {"input": "[3, 1, 2, 4, 3, 5]", "expected_output": "3"},
+            {"input": "[5, 4, 3, 2, 1]",     "expected_output": "1"},
+            {"input": "[1, 2, 3, 4, 5]",     "expected_output": "5"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(heights):\n"
+                "    # Recorre el array manteniendo un contador de racha actual\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\nusing namespace std;\n"
+                "int solve(vector<int> heights) {\n"
+                "    // Recorre manteniendo contador de racha y máximo global\n"
+                "    return 0;\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(int[] heights) {\n"
+                "    // Recorre manteniendo contador de racha y máximo global\n"
+                "    return 0;\n"
+                "}"
+            ),
+            "Go": ("func solve(heights []int) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(int[] heights) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "La Temporada de las Lluvias", "en": "The Rainy Season", "zh": "雨季"},
+        "description_i18n": {
+            "es": (
+                "Dado un array heights de n enteros, devuelve la longitud de la subsecuencia "
+                "contigua estrictamente creciente más larga.\n\n"
+                "Restricciones: 1 ≤ n ≤ 10^5, 0 ≤ heights[i] ≤ 10^9.\n\n"
+                "Ejemplo 1: [3,1,2,4,3,5] → 3\n"
+                "Ejemplo 2: [5,4,3,2,1] → 1\n"
+                "Ejemplo 3: [1,2,3,4,5] → 5\n\n"
+                "Escribe `solve(heights)`."
+            ),
+            "en": (
+                "Given array heights of n integers, return the length of the longest strictly "
+                "increasing contiguous subarray.\n\n"
+                "Constraints: 1 ≤ n ≤ 10^5, 0 ≤ heights[i] ≤ 10^9.\n\n"
+                "Example 1: [3,1,2,4,3,5] → 3\n"
+                "Example 2: [5,4,3,2,1] → 1\n"
+                "Example 3: [1,2,3,4,5] → 5\n\n"
+                "Write `solve(heights)`."
+            ),
+            "zh": (
+                "给定 n 个整数的数组 heights，返回最长严格递增连续子数组的长度。\n\n"
+                "示例 1：[3,1,2,4,3,5] → 3\n示例 2：[5,4,3,2,1] → 1\n\n"
+                "编写 `solve(heights)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  1200 — El Constructor del Puente Roto
+    # ══════════════════════════════════════════
+    {
+        "title": "El Constructor del Puente Roto",
+        "difficulty": 1200, "category": "Programación Dinámica", "total_solvers": 0,
+        "description": (
+            "El ingeniero Borís Ivánov supervisa la construcción de un puente peatonal de n tablones "
+            "numerados del 1 al n. Para cruzar el puente, una persona parte del tablón 0 (la orilla) "
+            "y debe llegar al tablón n (la otra orilla), avanzando exactamente 1 o 2 tablones en cada "
+            "salto. Sin embargo, durante la inspección Borís descubrió que ciertos tablones están "
+            "podridos y son peligrosos: nadie puede pisar esos tablones.\n\n"
+            "La empresa constructora necesita saber de cuántas maneras distintas es posible cruzar "
+            "el puente sin pisar ningún tablón podrido. El número de caminos puede ser muy grande, "
+            "así que Borís quiere el resultado módulo 10^9+7.\n\n"
+            "Formalmente:\n"
+            "  Dado n (número de tablones) y una lista forbidden de tablones prohibidos,\n"
+            "  cuenta el número de formas de llegar desde el tablón 0 hasta el tablón n,\n"
+            "  saltando de 1 en 1 o de 2 en 2, sin aterrizar en ningún tablón de forbidden.\n"
+            "  Devuelve el resultado módulo 10^9+7.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ n ≤ 10^4\n"
+            "  0 ≤ len(forbidden) ≤ n\n"
+            "  Los tablones prohibidos no incluyen el 0 ni el n.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: n=4, forbidden=[]\n"
+            "  Salida: 5\n"
+            "  Los caminos: (0→1→2→3→4), (0→1→2→4), (0→1→3→4), (0→2→3→4), (0→2→4).\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: n=5, forbidden=[2]\n"
+            "  Salida: 2\n"
+            "  El tablón 2 está podrido. Caminos válidos: (0→1→3→4→5), (0→1→3→5).\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: n=5, forbidden=[3]\n"
+            "  Salida: 2\n"
+            "  Caminos válidos: (0→1→2→4→5), (0→2→4→5).\n\n"
+            "Algoritmo: Programación dinámica con dp[i] = número de formas de llegar al tablón i.\n"
+            "  dp[0] = 1, dp[i] = 0 si i está en forbidden.\n"
+            "  dp[i] = (dp[i-1] + dp[i-2]) % MOD  para i no prohibido.\n\n"
+            "Escribe `solve(n, forbidden)` que devuelva el número de caminos módulo 10^9+7."
+        ),
+        "test_cases": [
+            {"input": "4, []",    "expected_output": "5"},
+            {"input": "5, [2]",   "expected_output": "2"},
+            {"input": "5, [3]",   "expected_output": "2"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(n, forbidden):\n"
+                "    MOD = 10**9 + 7\n"
+                "    bad = set(forbidden)\n"
+                "    # dp[i] = formas de llegar al tablon i\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\n#include <unordered_set>\nusing namespace std;\n"
+                "int solve(int n, vector<int> forbidden) {\n"
+                "    const int MOD = 1e9 + 7;\n"
+                "    unordered_set<int> bad(forbidden.begin(), forbidden.end());\n"
+                "    // dp[i] = formas de llegar al tablon i\n"
+                "    return 0;\n"
+                "}"
+            ),
+            "Java": (
+                "import java.util.*;\n"
+                "public static int solve(int n, int[] forbidden) {\n"
+                "    final int MOD = 1_000_000_007;\n"
+                "    Set<Integer> bad = new HashSet<>();\n"
+                "    for (int f : forbidden) bad.add(f);\n"
+                "    // dp[i] = formas de llegar al tablon i\n"
+                "    return 0;\n"
+                "}"
+            ),
+            "Go": ("func solve(n int, forbidden []int) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(int n, int[] forbidden) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "El Constructor del Puente Roto", "en": "The Broken Bridge Builder", "zh": "破损的桥"},
+        "description_i18n": {
+            "es": (
+                "Desde el tablón 0 hasta el tablón n, saltando 1 o 2 tablones a la vez, "
+                "sin pisar los tablones de la lista forbidden. Devuelve el número de caminos módulo 10^9+7.\n\n"
+                "Restricciones: 1 ≤ n ≤ 10^4.\n\n"
+                "Ejemplo 1: n=4, forbidden=[] → 5\n"
+                "Ejemplo 2: n=5, forbidden=[2] → 2\n"
+                "Ejemplo 3: n=5, forbidden=[3] → 2\n\n"
+                "Escribe `solve(n, forbidden)`."
+            ),
+            "en": (
+                "From step 0 to step n, jumping 1 or 2 steps at a time, without landing on "
+                "any step in forbidden. Return the number of paths modulo 10^9+7.\n\n"
+                "Constraints: 1 ≤ n ≤ 10^4.\n\n"
+                "Example 1: n=4, forbidden=[] → 5\n"
+                "Example 2: n=5, forbidden=[2] → 2\n"
+                "Example 3: n=5, forbidden=[3] → 2\n\n"
+                "Write `solve(n, forbidden)`."
+            ),
+            "zh": (
+                "从台阶 0 跳到台阶 n，每次跳 1 或 2 步，不能落在 forbidden 中的台阶。"
+                "返回路径数对 10^9+7 取模的结果。\n\n"
+                "示例 1：n=4, forbidden=[] → 5\n示例 2：n=5, forbidden=[2] → 2\n\n"
+                "编写 `solve(n, forbidden)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  1400 — El Barrio Circular de los Piratas
+    # ══════════════════════════════════════════
+    {
+        "title": "El Barrio Circular de los Piratas",
+        "difficulty": 1400, "category": "Programación Dinámica", "total_solvers": 0,
+        "description": (
+            "En la isla de Tortuga, los piratas viven en casas dispuestas en círculo a lo largo "
+            "de la costa. Cada casa i contiene exactamente coins[i] monedas de oro. El famoso "
+            "ladrón Jack el Veloz planea robar la mayor cantidad posible de monedas esta noche.\n\n"
+            "Sin embargo, Jack tiene una regla de oro: nunca roba dos casas adyacentes en la "
+            "misma noche, pues los piratas de casas vecinas se alertan mutuamente. Como las casas "
+            "están en círculo, la primera y la última casa también son adyacentes y no pueden ser "
+            "robadas en la misma noche.\n\n"
+            "Jack necesita tu ayuda para calcular el máximo botín posible.\n\n"
+            "Formalmente:\n"
+            "  Dado un array circular coins de n enteros (n ≥ 2), elige un subconjunto de "
+            "posiciones no adyacentes (considerando la circularidad) que maximice la suma.\n\n"
+            "Restricciones:\n"
+            "  2 ≤ n ≤ 10^5\n"
+            "  0 ≤ coins[i] ≤ 10^9\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: coins = [2, 3, 2]\n"
+            "  Salida: 3\n"
+            "  Tomar casa 1 (3 monedas). No se pueden tomar casas 0 y 2 juntas (son adyacentes "
+            "en el círculo).\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: coins = [1, 2, 3, 1]\n"
+            "  Salida: 4\n"
+            "  Tomar casas 0 y 2 (1+3=4). O casas 1 y 3 (2+1=3). Óptimo: 4.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: coins = [5, 1, 1, 5]\n"
+            "  Salida: 6\n"
+            "  No se puede tomar ambos 5 (casas 0 y 3 son adyacentes en el círculo). "
+            "Mejor: casa 0 + casa 2 = 5+1=6, o casa 1 + casa 3 = 1+5=6.\n\n"
+            "Algoritmo: Resuelve dos subproblemas lineales de House Robber:\n"
+            "  1) Rob desde el índice 0 hasta n-2 (excluye la última casa).\n"
+            "  2) Rob desde el índice 1 hasta n-1 (excluye la primera casa).\n"
+            "  La respuesta es el máximo de ambos.\n\n"
+            "Escribe `solve(coins)` que devuelva el máximo botín."
+        ),
+        "test_cases": [
+            {"input": "[2, 3, 2]",    "expected_output": "3"},
+            {"input": "[1, 2, 3, 1]", "expected_output": "4"},
+            {"input": "[5, 1, 1, 5]", "expected_output": "6"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(coins):\n"
+                "    def rob_linear(arr):\n"
+                "        prev2, prev1 = 0, 0\n"
+                "        for x in arr:\n"
+                "            prev2, prev1 = prev1, max(prev1, prev2 + x)\n"
+                "        return prev1\n"
+                "    # Resuelve dos versiones lineales y toma el maximo\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\n#include <algorithm>\nusing namespace std;\n"
+                "int solve(vector<int> coins) {\n"
+                "    int n = coins.size();\n"
+                "    if (n == 1) return coins[0];\n"
+                "    // rob_linear sobre [0..n-2] y [1..n-1]\n"
+                "    return 0;\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(int[] coins) {\n"
+                "    int n = coins.length;\n"
+                "    if (n == 1) return coins[0];\n"
+                "    // rob_linear sobre [0..n-2] y [1..n-1]\n"
+                "    return 0;\n"
+                "}"
+            ),
+            "Go": ("func solve(coins []int) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(int[] coins) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "El Barrio Circular de los Piratas", "en": "The Circular Pirate District", "zh": "海盗的环形街区"},
+        "description_i18n": {
+            "es": (
+                "Casas en círculo con monedas. No puedes robar casas adyacentes (incluida la "
+                "primera y última). Devuelve el máximo botín posible.\n\n"
+                "Algoritmo: dos pasadas de House Robber lineal, tomando el máximo.\n\n"
+                "Ejemplo 1: [2,3,2] → 3\n"
+                "Ejemplo 2: [1,2,3,1] → 4\n"
+                "Ejemplo 3: [5,1,1,5] → 6\n\n"
+                "Escribe `solve(coins)`."
+            ),
+            "en": (
+                "Houses in a circle with coins. Cannot rob adjacent houses (first and last are "
+                "also adjacent). Return the maximum loot.\n\n"
+                "Algorithm: two linear House Robber passes, take the maximum.\n\n"
+                "Example 1: [2,3,2] → 3\n"
+                "Example 2: [1,2,3,1] → 4\n"
+                "Example 3: [5,1,1,5] → 6\n\n"
+                "Write `solve(coins)`."
+            ),
+            "zh": (
+                "环形排列的房屋，不能偷相邻的房屋（首尾也相邻）。返回最大金额。\n\n"
+                "示例 1：[2,3,2] → 3\n示例 2：[1,2,3,1] → 4\n\n"
+                "编写 `solve(coins)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  1600 — El Censo de Inversiones
+    # ══════════════════════════════════════════
+    {
+        "title": "El Censo de Inversiones",
+        "difficulty": 1600, "category": "Divide y Vencerás", "total_solvers": 0,
+        "description": (
+            "La estadística Daria Volkova trabaja en el Departamento de Análisis Económico de "
+            "Moscú. Su jefe le ha encargado una tarea peculiar: dada una secuencia de n valores "
+            "económicos registrados en orden temporal, debe contar cuántas 'inversiones' contiene "
+            "la secuencia. Una inversión es un par de índices (i, j) con i < j tal que arr[i] > arr[j], "
+            "es decir, un valor anterior es mayor que uno posterior, lo cual señala una anomalía "
+            "en la tendencia esperada del mercado.\n\n"
+            "El número de inversiones es una medida clásica de cuán 'desordenada' está una secuencia. "
+            "Si la secuencia está ordenada de menor a mayor, hay 0 inversiones. Si está ordenada de "
+            "mayor a menor, hay n*(n-1)/2 inversiones (el máximo posible).\n\n"
+            "Formalmente:\n"
+            "  Dado un array arr de n enteros distintos, cuenta el número de pares (i,j) con "
+            "i < j y arr[i] > arr[j].\n\n"
+            "Restricciones:\n"
+            "  1 ≤ n ≤ 10^5\n"
+            "  -10^9 ≤ arr[i] ≤ 10^9\n"
+            "  Los valores son distintos entre sí.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: arr = [2, 4, 1, 3, 5]\n"
+            "  Salida: 3\n"
+            "  Las inversiones son: (2,1), (4,1), (4,3). Los índices son (0,2), (1,2), (1,3).\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: arr = [1, 2, 3, 4, 5]\n"
+            "  Salida: 0\n"
+            "  La secuencia está perfectamente ordenada: no hay inversiones.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: arr = [5, 4, 3, 2, 1]\n"
+            "  Salida: 10\n"
+            "  Máximo posible para n=5: 5*4/2 = 10.\n\n"
+            "Algoritmo: Merge Sort modificado. Durante la fase de mezcla, cuando tomamos un elemento "
+            "del sub-array derecho por encima de uno del izquierdo, sumamos el número de elementos "
+            "restantes en el sub-array izquierdo al contador de inversiones. Complejidad: O(n log n).\n"
+            "Alternativamente, usa un árbol de Fenwick (BIT) para consultas de prefijo.\n\n"
+            "Escribe `solve(arr)` que devuelva el número total de inversiones."
+        ),
+        "test_cases": [
+            {"input": "[2, 4, 1, 3, 5]", "expected_output": "3"},
+            {"input": "[1, 2, 3, 4, 5]", "expected_output": "0"},
+            {"input": "[5, 4, 3, 2, 1]", "expected_output": "10"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(arr):\n"
+                "    # Merge sort modificado: cuenta inversiones durante la mezcla\n"
+                "    def merge_count(a):\n"
+                "        if len(a) <= 1:\n"
+                "            return a, 0\n"
+                "        mid = len(a) // 2\n"
+                "        left, lc = merge_count(a[:mid])\n"
+                "        right, rc = merge_count(a[mid:])\n"
+                "        merged, mc = [], 0\n"
+                "        i = j = 0\n"
+                "        # Completa la mezcla y cuenta\n"
+                "        pass\n"
+                "    _, count = merge_count(arr)\n"
+                "    return count"
+            ),
+            "C++": (
+                "#include <vector>\nusing namespace std;\n"
+                "long long merge_count(vector<int>& arr, int l, int r) {\n"
+                "    if (r - l <= 1) return 0;\n"
+                "    int mid = (l + r) / 2;\n"
+                "    long long cnt = merge_count(arr, l, mid) + merge_count(arr, mid, r);\n"
+                "    vector<int> tmp;\n"
+                "    int i = l, j = mid;\n"
+                "    while (i < mid && j < r) {\n"
+                "        if (arr[i] <= arr[j]) tmp.push_back(arr[i++]);\n"
+                "        else { cnt += mid - i; tmp.push_back(arr[j++]); }\n"
+                "    }\n"
+                "    while (i < mid) tmp.push_back(arr[i++]);\n"
+                "    while (j < r)   tmp.push_back(arr[j++]);\n"
+                "    for (int k = l; k < r; k++) arr[k] = tmp[k - l];\n"
+                "    return cnt;\n"
+                "}\n"
+                "long long solve(vector<int> arr) {\n"
+                "    return merge_count(arr, 0, arr.size());\n"
+                "}"
+            ),
+            "Java": (
+                "public static long solve(int[] arr) {\n"
+                "    return mergeCount(arr, 0, arr.length);\n"
+                "}\n"
+                "static long mergeCount(int[] arr, int l, int r) {\n"
+                "    if (r - l <= 1) return 0;\n"
+                "    int mid = (l + r) / 2;\n"
+                "    long cnt = mergeCount(arr, l, mid) + mergeCount(arr, mid, r);\n"
+                "    int[] tmp = new int[r - l];\n"
+                "    int i = l, j = mid, k = 0;\n"
+                "    while (i < mid && j < r) {\n"
+                "        if (arr[i] <= arr[j]) tmp[k++] = arr[i++];\n"
+                "        else { cnt += mid - i; tmp[k++] = arr[j++]; }\n"
+                "    }\n"
+                "    while (i < mid) tmp[k++] = arr[i++];\n"
+                "    while (j < r)   tmp[k++] = arr[j++];\n"
+                "    System.arraycopy(tmp, 0, arr, l, r - l);\n"
+                "    return cnt;\n"
+                "}"
+            ),
+            "Go": ("func solve(arr []int) int64 {\n    return 0\n}"),
+            "C#": ("public static long Solve(int[] arr) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "El Censo de Inversiones", "en": "The Inversion Census", "zh": "逆序对计数"},
+        "description_i18n": {
+            "es": (
+                "Dado arr de n enteros distintos, cuenta los pares (i,j) con i<j y arr[i]>arr[j].\n\n"
+                "Algoritmo: Merge Sort modificado, O(n log n).\n\n"
+                "Ejemplo 1: [2,4,1,3,5] → 3\n"
+                "Ejemplo 2: [1,2,3,4,5] → 0\n"
+                "Ejemplo 3: [5,4,3,2,1] → 10\n\n"
+                "Escribe `solve(arr)`."
+            ),
+            "en": (
+                "Given array arr of n distinct integers, count pairs (i,j) with i<j and arr[i]>arr[j].\n\n"
+                "Algorithm: modified Merge Sort, O(n log n).\n\n"
+                "Example 1: [2,4,1,3,5] → 3\n"
+                "Example 2: [1,2,3,4,5] → 0\n"
+                "Example 3: [5,4,3,2,1] → 10\n\n"
+                "Write `solve(arr)`."
+            ),
+            "zh": (
+                "给定 n 个不同整数的数组，计算满足 i<j 且 arr[i]>arr[j] 的对数。\n\n"
+                "算法：归并排序变体，O(n log n)。\n\n"
+                "示例 1：[2,4,1,3,5] → 3\n示例 3：[5,4,3,2,1] → 10\n\n"
+                "编写 `solve(arr)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  1800 — La Exploradora de Palíndromos
+    # ══════════════════════════════════════════
+    {
+        "title": "La Exploradora de Palíndromos",
+        "difficulty": 1800, "category": "Strings", "total_solvers": 0,
+        "description": (
+            "La lingüista computacional Elena Sorokina trabaja en el Laboratorio de Lingüística "
+            "de la Universidad Estatal de Moscú. Su área de investigación son los palíndromos: "
+            "cadenas que se leen igual de izquierda a derecha que de derecha a izquierda.\n\n"
+            "Elena está analizando una cadena de texto de longitud n y quiere encontrar la "
+            "subcadena contigua más larga que sea un palíndromo. Este problema tiene aplicaciones "
+            "en bioinformática (búsqueda de estructuras en ADN), criptografía y compresión de datos.\n\n"
+            "Una subcadena palindrómica puede expandirse desde un centro: para palíndromos de "
+            "longitud impar, el centro es un único carácter; para palíndromos de longitud par, "
+            "el centro está entre dos caracteres iguales consecutivos.\n\n"
+            "Formalmente:\n"
+            "  Dada una cadena s de longitud n, devuelve la longitud de la subcadena palindrómica "
+            "más larga contenida en s.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ n ≤ 1000\n"
+            "  s contiene solo letras minúsculas del alfabeto inglés.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: s = \"babad\"\n"
+            "  Salida: 3\n"
+            "  Tanto \"bab\" (posiciones 0-2) como \"aba\" (posiciones 1-3) son palíndromos de longitud 3.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: s = \"cbbd\"\n"
+            "  Salida: 2\n"
+            "  \"bb\" (posiciones 1-2) es el palíndromo más largo.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: s = \"racecar\"\n"
+            "  Salida: 7\n"
+            "  Toda la cadena es un palíndromo.\n\n"
+            "Algoritmo (Expand Around Center):\n"
+            "  Para cada posición i, expande hacia afuera considerando:\n"
+            "  a) Centro en i (palíndromos impares): s[i-k] == s[i+k]\n"
+            "  b) Centro entre i e i+1 (palíndromos pares): s[i-k+1] == s[i+k]\n"
+            "  Actualiza el máximo en cada expansión. Complejidad: O(n²).\n"
+            "  Existe el algoritmo de Manacher que resuelve esto en O(n), si te atreves.\n\n"
+            "Escribe `solve(s)` que devuelva la longitud del palíndromo más largo."
+        ),
+        "test_cases": [
+            {"input": '"babad"',   "expected_output": "3"},
+            {"input": '"cbbd"',    "expected_output": "2"},
+            {"input": '"racecar"', "expected_output": "7"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(s):\n"
+                "    def expand(l, r):\n"
+                "        while l >= 0 and r < len(s) and s[l] == s[r]:\n"
+                "            l -= 1; r += 1\n"
+                "        return r - l - 1\n"
+                "    # Para cada i expande impar (i,i) y par (i,i+1)\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <string>\n#include <algorithm>\nusing namespace std;\n"
+                "int solve(string s) {\n"
+                "    int n = s.size(), best = 1;\n"
+                "    for (int i = 0; i < n; i++) {\n"
+                "        // Expand impar\n"
+                "        for (int l = i, r = i; l >= 0 && r < n && s[l] == s[r]; l--, r++)\n"
+                "            best = max(best, r - l + 1);\n"
+                "        // Expand par\n"
+                "        for (int l = i, r = i+1; l >= 0 && r < n && s[l] == s[r]; l--, r++)\n"
+                "            best = max(best, r - l + 1);\n"
+                "    }\n"
+                "    return best;\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(String s) {\n"
+                "    int n = s.length(), best = 1;\n"
+                "    for (int i = 0; i < n; i++) {\n"
+                "        // Expand impar\n"
+                "        for (int l = i, r = i; l >= 0 && r < n && s.charAt(l)==s.charAt(r); l--, r++)\n"
+                "            best = Math.max(best, r - l + 1);\n"
+                "        // Expand par\n"
+                "        for (int l = i, r = i+1; l >= 0 && r < n && s.charAt(l)==s.charAt(r); l--, r++)\n"
+                "            best = Math.max(best, r - l + 1);\n"
+                "    }\n"
+                "    return best;\n"
+                "}"
+            ),
+            "Go": ("func solve(s string) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(string s) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "La Exploradora de Palíndromos", "en": "The Palindrome Explorer", "zh": "回文串探索者"},
+        "description_i18n": {
+            "es": (
+                "Dada una cadena s, devuelve la longitud de la subcadena palindrómica más larga.\n\n"
+                "Restricciones: 1 ≤ len(s) ≤ 1000, solo minúsculas.\n\n"
+                "Ejemplo 1: \"babad\" → 3\nEjemplo 2: \"cbbd\" → 2\nEjemplo 3: \"racecar\" → 7\n\n"
+                "Escribe `solve(s)`."
+            ),
+            "en": (
+                "Given string s, return the length of the longest palindromic substring.\n\n"
+                "Constraints: 1 ≤ len(s) ≤ 1000, lowercase only.\n\n"
+                "Example 1: \"babad\" → 3\nExample 2: \"cbbd\" → 2\nExample 3: \"racecar\" → 7\n\n"
+                "Write `solve(s)`."
+            ),
+            "zh": (
+                "给定字符串 s，返回最长回文子串的长度。\n\n"
+                "示例 1：\"babad\" → 3\n示例 2：\"racecar\" → 7\n\n编写 `solve(s)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  2000 — La Teoría del NIM
+    # ══════════════════════════════════════════
+    {
+        "title": "La Teoría del NIM",
+        "difficulty": 2000, "category": "Matemáticas", "total_solvers": 0,
+        "description": (
+            "En el Instituto de Matemáticas Discretas de Praga, el profesor Novák enseña teoría "
+            "de juegos combinatorios. Hoy toca el famoso juego del NIM, inventado y analizado "
+            "matemáticamente por Charles Bouton en 1901.\n\n"
+            "El juego se desarrolla así: hay n montones de piedras sobre la mesa. Dos jugadores "
+            "se turnan. En cada turno, un jugador DEBE elegir exactamente uno de los montones y "
+            "retirar de él cualquier número de piedras (al menos una). El jugador que retire la "
+            "última piedra de la mesa GANA.\n\n"
+            "Ambos jugadores juegan de forma óptima (siempre hacen la mejor jugada posible). "
+            "Tu tarea es determinar si el PRIMER jugador tiene una estrategia ganadora.\n\n"
+            "La solución es uno de los resultados más elegantes de la matemática combinatoria:\n"
+            "  El primer jugador gana si y solo si el XOR (OR exclusivo a nivel de bits) "
+            "de los tamaños de todos los montones es distinto de cero.\n\n"
+            "Intuición: si XOR = 0 (posición P), cualquier movimiento del primer jugador creará "
+            "XOR ≠ 0, y el segundo jugador siempre podrá restaurar XOR = 0. Si XOR ≠ 0 (posición N), "
+            "el primer jugador puede siempre hacer un movimiento que deje XOR = 0.\n\n"
+            "Formalmente:\n"
+            "  Dado un array piles de n enteros positivos, devuelve True si el primer jugador "
+            "gana con juego óptimo, False si el segundo jugador gana.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ n ≤ 10^5\n"
+            "  1 ≤ piles[i] ≤ 10^9\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: piles = [3, 4, 5]\n"
+            "  Salida: True\n"
+            "  3 XOR 4 = 7, 7 XOR 5 = 2 ≠ 0. El primer jugador gana.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: piles = [1, 2, 3]\n"
+            "  Salida: False\n"
+            "  1 XOR 2 = 3, 3 XOR 3 = 0. El segundo jugador gana.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: piles = [4, 4]\n"
+            "  Salida: False\n"
+            "  4 XOR 4 = 0. El segundo jugador gana (simetría perfecta).\n\n"
+            "Nota avanzada: Esta propiedad del XOR se generaliza al teorema de Sprague-Grundy, "
+            "que permite analizar cualquier juego combinatorio imparcial descomponiéndolo en "
+            "sub-juegos y calculando su valor Grundy.\n\n"
+            "Escribe `solve(piles)` que devuelva True si gana el primer jugador."
+        ),
+        "test_cases": [
+            {"input": "[3, 4, 5]", "expected_output": "True"},
+            {"input": "[1, 2, 3]", "expected_output": "False"},
+            {"input": "[4, 4]",    "expected_output": "False"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(piles):\n"
+                "    # XOR de todos los montones != 0 => primer jugador gana\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\nusing namespace std;\n"
+                "bool solve(vector<int> piles) {\n"
+                "    int xorSum = 0;\n"
+                "    for (int p : piles) xorSum ^= p;\n"
+                "    return xorSum != 0;\n"
+                "}"
+            ),
+            "Java": (
+                "public static boolean solve(int[] piles) {\n"
+                "    int xorSum = 0;\n"
+                "    for (int p : piles) xorSum ^= p;\n"
+                "    return xorSum != 0;\n"
+                "}"
+            ),
+            "Go": ("func solve(piles []int) bool {\n    x := 0\n    for _, p := range piles { x ^= p }\n    return x != 0\n}"),
+            "C#": ("public static bool Solve(int[] piles) {\n    int x = 0;\n    foreach (var p in piles) x ^= p;\n    return x != 0;\n}"),
+        },
+        "title_i18n": {"es": "La Teoría del NIM", "en": "The Theory of NIM", "zh": "NIM 游戏理论"},
+        "description_i18n": {
+            "es": (
+                "Juego NIM: n montones, los jugadores turnan retirando piedras. El que retire la "
+                "última gana. ¿Gana el primer jugador con juego óptimo?\n\n"
+                "Solución: XOR de todos los montones ≠ 0 ⟹ primer jugador gana.\n\n"
+                "Ejemplo 1: [3,4,5] → True (XOR=2)\n"
+                "Ejemplo 2: [1,2,3] → False (XOR=0)\n"
+                "Ejemplo 3: [4,4] → False (XOR=0)\n\n"
+                "Escribe `solve(piles)`."
+            ),
+            "en": (
+                "NIM game: n piles, players alternate removing stones. Last to remove wins. "
+                "Does the first player win with optimal play?\n\n"
+                "Solution: XOR of all piles ≠ 0 ⟹ first player wins.\n\n"
+                "Example 1: [3,4,5] → True\nExample 2: [1,2,3] → False\n\n"
+                "Write `solve(piles)`."
+            ),
+            "zh": (
+                "NIM 游戏：n 堆石头，轮流取，取最后一颗赢。先手必胜当且仅当所有堆的 XOR ≠ 0。\n\n"
+                "示例 1：[3,4,5] → True\n示例 2：[1,2,3] → False\n\n"
+                "编写 `solve(piles)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  2200 — El Cambista del Imperio Romano
+    # ══════════════════════════════════════════
+    {
+        "title": "El Cambista del Imperio Romano",
+        "difficulty": 2200, "category": "Programación Dinámica", "total_solvers": 0,
+        "description": (
+            "Marco Aurelio Fortunato es cambista en el mercado central de Roma. Cada día "
+            "recibe bolsas de denarios y debe cambiarlas usando las monedas disponibles en "
+            "su caja. A diferencia de otros problemas de cambio de monedas, aquí no importa "
+            "el número mínimo de monedas: Marco quiere saber de cuántas MANERAS DISTINTAS "
+            "puede formar exactamente una cantidad dada usando las monedas disponibles, donde "
+            "cada tipo de moneda puede usarse tantas veces como sea necesario.\n\n"
+            "Este problema es el clásico 'Coin Change 2' y tiene aplicaciones en combinatoria, "
+            "probabilidad discreta y teoría de números.\n\n"
+            "Formalmente:\n"
+            "  Dado un array coins de denominaciones y un entero amount,\n"
+            "  devuelve el número de combinaciones distintas para formar exactamente amount.\n"
+            "  Cada moneda puede usarse ilimitadas veces. El orden no importa: [1,2] y [2,1] "
+            "son la misma combinación.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ len(coins) ≤ 300\n"
+            "  1 ≤ coins[i] ≤ 5000\n"
+            "  0 ≤ amount ≤ 5000\n"
+            "  Los valores de coins son distintos entre sí.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: coins = [1, 2, 5], amount = 5\n"
+            "  Salida: 4\n"
+            "  Las combinaciones son: [5], [2,2,1], [2,1,1,1], [1,1,1,1,1].\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: coins = [2], amount = 3\n"
+            "  Salida: 0\n"
+            "  Es imposible formar 3 con monedas de valor 2.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: coins = [1, 2, 3], amount = 4\n"
+            "  Salida: 4\n"
+            "  Las combinaciones: [1,1,1,1], [1,1,2], [2,2], [1,3].\n\n"
+            "Algoritmo: Programación dinámica 1D.\n"
+            "  dp[0] = 1 (hay exactamente 1 forma de formar 0: no usar ninguna moneda).\n"
+            "  Para cada moneda c (en el exterior) y para cada j de c a amount:\n"
+            "    dp[j] += dp[j - c]\n"
+            "  El orden del bucle externo (monedas) vs interno (cantidad) es crucial: "
+            "al iterar monedas en el exterior evitamos contar permutaciones como combinaciones.\n\n"
+            "Escribe `solve(coins, amount)` que devuelva el número de combinaciones."
+        ),
+        "test_cases": [
+            {"input": "[1, 2, 5], 5", "expected_output": "4"},
+            {"input": "[2], 3",        "expected_output": "0"},
+            {"input": "[1, 2, 3], 4",  "expected_output": "4"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(coins, amount):\n"
+                "    dp = [0] * (amount + 1)\n"
+                "    dp[0] = 1\n"
+                "    # Para cada moneda, actualiza dp[j] += dp[j - coin]\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\nusing namespace std;\n"
+                "int solve(vector<int> coins, int amount) {\n"
+                "    vector<int> dp(amount + 1, 0);\n"
+                "    dp[0] = 1;\n"
+                "    for (int c : coins)\n"
+                "        for (int j = c; j <= amount; j++)\n"
+                "            dp[j] += dp[j - c];\n"
+                "    return dp[amount];\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(int[] coins, int amount) {\n"
+                "    int[] dp = new int[amount + 1];\n"
+                "    dp[0] = 1;\n"
+                "    for (int c : coins)\n"
+                "        for (int j = c; j <= amount; j++)\n"
+                "            dp[j] += dp[j - c];\n"
+                "    return dp[amount];\n"
+                "}"
+            ),
+            "Go": ("func solve(coins []int, amount int) int {\n    dp := make([]int, amount+1)\n    dp[0] = 1\n    for _, c := range coins {\n        for j := c; j <= amount; j++ {\n            dp[j] += dp[j-c]\n        }\n    }\n    return dp[amount]\n}"),
+            "C#": ("public static int Solve(int[] coins, int amount) {\n    var dp = new int[amount+1];\n    dp[0] = 1;\n    foreach (var c in coins)\n        for (int j = c; j <= amount; j++)\n            dp[j] += dp[j-c];\n    return dp[amount];\n}"),
+        },
+        "title_i18n": {"es": "El Cambista del Imperio Romano", "en": "The Roman Empire Money Changer", "zh": "罗马帝国的换币官"},
+        "description_i18n": {
+            "es": (
+                "Dado coins (denominaciones) y amount, devuelve el número de combinaciones "
+                "distintas para formar amount (cada moneda usable ilimitadamente, orden no importa).\n\n"
+                "Restricciones: 1 ≤ len(coins) ≤ 300, 0 ≤ amount ≤ 5000.\n\n"
+                "Ejemplo 1: [1,2,5], 5 → 4\n"
+                "Ejemplo 2: [2], 3 → 0\n"
+                "Ejemplo 3: [1,2,3], 4 → 4\n\n"
+                "Escribe `solve(coins, amount)`."
+            ),
+            "en": (
+                "Given coins (denominations) and amount, return the number of distinct combinations "
+                "to make amount (unlimited use, order doesn't matter).\n\n"
+                "Constraints: 1 ≤ len(coins) ≤ 300, 0 ≤ amount ≤ 5000.\n\n"
+                "Example 1: [1,2,5], 5 → 4\nExample 2: [2], 3 → 0\n\n"
+                "Write `solve(coins, amount)`."
+            ),
+            "zh": (
+                "给定硬币面值列表 coins 和目标金额 amount，返回凑成 amount 的不同组合数（无限使用，顺序无关）。\n\n"
+                "示例 1：[1,2,5], 5 → 4\n示例 2：[2], 3 → 0\n\n"
+                "编写 `solve(coins, amount)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  2400 — El Editor Mínimo de Palíndromos
+    # ══════════════════════════════════════════
+    {
+        "title": "El Editor Mínimo de Palíndromos",
+        "difficulty": 2400, "category": "Programación Dinámica", "total_solvers": 0,
+        "description": (
+            "La editora Irina Kazárova trabaja en un periódico de Kazán especializado en "
+            "palindromía literaria: textos que se leen igual de izquierda a derecha que de "
+            "derecha a izquierda. Irina recibe cadenas de texto y debe transformarlas en "
+            "palíndromos insertando el mínimo número posible de caracteres (puede insertar "
+            "cualquier carácter en cualquier posición).\n\n"
+            "Por ejemplo, para convertir \"ab\" en un palíndromo, Irina puede insertar 'a' al "
+            "final obteniendo \"aba\" (1 inserción) o insertar 'b' al principio obteniendo \"bab\" "
+            "(1 inserción). No hay forma de hacerlo con 0 inserciones.\n\n"
+            "Formalmente:\n"
+            "  Dada una cadena s, devuelve el número mínimo de inserciones de caracteres "
+            "necesarias para convertirla en un palíndromo.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ len(s) ≤ 500\n"
+            "  s contiene solo letras minúsculas del alfabeto inglés.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: s = \"zzazz\"\n"
+            "  Salida: 0\n"
+            "  \"zzazz\" ya es un palíndromo. No se necesitan inserciones.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: s = \"mbadm\"\n"
+            "  Salida: 2\n"
+            "  Por ejemplo, insertar 'a' y 'd': \"mbdaadm\" no funciona bien... La subsecuencia "
+            "palindrómica más larga de \"mbadm\" es \"mam\" o \"mbm\" (longitud 3). "
+            "Mínimas inserciones = len(s) - LPS(s) = 5 - 3 = 2.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: s = \"abcd\"\n"
+            "  Salida: 3\n"
+            "  Todos los caracteres son distintos, LPS = 1. Mínimas inserciones = 4 - 1 = 3.\n\n"
+            "Clave: El número mínimo de inserciones para hacer s palíndromo es:\n"
+            "  len(s) - LPS(s)\n"
+            "donde LPS(s) es la longitud de la Subsecuencia Palindrómica más Larga de s.\n\n"
+            "Para calcular LPS(s): es equivalente al LCS (Longest Common Subsequence) entre s "
+            "y su reverso reverse(s).\n\n"
+            "Algoritmo de LCS:\n"
+            "  dp[i][j] = LCS de s[0..i-1] y t[0..j-1], donde t = s[::-1]\n"
+            "  Si s[i-1] == t[j-1]: dp[i][j] = dp[i-1][j-1] + 1\n"
+            "  Si no: dp[i][j] = max(dp[i-1][j], dp[i][j-1])\n\n"
+            "Escribe `solve(s)` que devuelva el número mínimo de inserciones."
+        ),
+        "test_cases": [
+            {"input": '"zzazz"', "expected_output": "0"},
+            {"input": '"mbadm"', "expected_output": "2"},
+            {"input": '"abcd"',  "expected_output": "3"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(s):\n"
+                "    t = s[::-1]\n"
+                "    n = len(s)\n"
+                "    # LCS entre s y t = LPS(s)\n"
+                "    # Respuesta = n - LPS(s)\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <string>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n"
+                "int solve(string s) {\n"
+                "    int n = s.size();\n"
+                "    string t(s.rbegin(), s.rend());\n"
+                "    vector<vector<int>> dp(n+1, vector<int>(n+1, 0));\n"
+                "    for (int i = 1; i <= n; i++)\n"
+                "        for (int j = 1; j <= n; j++)\n"
+                "            dp[i][j] = s[i-1]==t[j-1] ? dp[i-1][j-1]+1 : max(dp[i-1][j], dp[i][j-1]);\n"
+                "    return n - dp[n][n];\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(String s) {\n"
+                "    int n = s.length();\n"
+                "    String t = new StringBuilder(s).reverse().toString();\n"
+                "    int[][] dp = new int[n+1][n+1];\n"
+                "    for (int i = 1; i <= n; i++)\n"
+                "        for (int j = 1; j <= n; j++)\n"
+                "            dp[i][j] = s.charAt(i-1)==t.charAt(j-1) ? dp[i-1][j-1]+1\n"
+                "                       : Math.max(dp[i-1][j], dp[i][j-1]);\n"
+                "    return n - dp[n][n];\n"
+                "}"
+            ),
+            "Go": ("func solve(s string) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(string s) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "El Editor Mínimo de Palíndromos", "en": "The Minimum Palindrome Editor", "zh": "最少回文插入"},
+        "description_i18n": {
+            "es": (
+                "Dada cadena s, devuelve el mínimo número de inserciones para hacerla palíndromo.\n\n"
+                "Clave: respuesta = len(s) - LPS(s) = len(s) - LCS(s, reverse(s)).\n\n"
+                "Ejemplo 1: \"zzazz\" → 0\nEjemplo 2: \"mbadm\" → 2\nEjemplo 3: \"abcd\" → 3\n\n"
+                "Escribe `solve(s)`."
+            ),
+            "en": (
+                "Given string s, return the minimum insertions to make it a palindrome.\n\n"
+                "Key: answer = len(s) - LPS(s) = len(s) - LCS(s, reverse(s)).\n\n"
+                "Example 1: \"zzazz\" → 0\nExample 2: \"mbadm\" → 2\nExample 3: \"abcd\" → 3\n\n"
+                "Write `solve(s)`."
+            ),
+            "zh": (
+                "给定字符串 s，返回使其成为回文所需的最少插入次数。\n\n"
+                "关键：答案 = len(s) - LPS(s) = len(s) - LCS(s, reverse(s))。\n\n"
+                "示例 1：\"zzazz\" → 0\n示例 2：\"mbadm\" → 2\n\n"
+                "编写 `solve(s)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  2600 — El Gran Repartidor de Carga
+    # ══════════════════════════════════════════
+    {
+        "title": "El Gran Repartidor de Carga",
+        "difficulty": 2600, "category": "Búsqueda Binaria", "total_solvers": 0,
+        "description": (
+            "La empresa de logística TransSiberia necesita repartir un cargamento a lo largo "
+            "de una ruta con n paradas. Cada parada i tiene un paquete de peso weights[i] que "
+            "DEBE ser entregado en el mismo viaje en que se recoge (no se puede partir un paquete). "
+            "Se dispone de k camiones que harán el viaje en convoy, y cada camión debe entregar "
+            "un tramo contiguo de paradas (la ruta no puede reordenarse). La carga de cada "
+            "camión es la suma de los pesos de los paquetes en su tramo.\n\n"
+            "El director de logística, Dmitri Sokolov, quiere minimizar la carga máxima que "
+            "soporta cualquier camión, para que ninguno quede sobrecargado. Tu tarea es encontrar "
+            "esa carga máxima mínima posible.\n\n"
+            "Formalmente:\n"
+            "  Dado un array weights de n enteros y un entero k,\n"
+            "  divide weights en exactamente k subarray contiguos (sin reordenar)\n"
+            "  minimizando el máximo de las sumas de los subarrays.\n"
+            "  Devuelve ese máximo mínimo.\n\n"
+            "Restricciones:\n"
+            "  1 ≤ k ≤ n ≤ 1000\n"
+            "  1 ≤ weights[i] ≤ 10^6\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: weights = [7, 2, 5, 10, 8], k = 2\n"
+            "  Salida: 18\n"
+            "  La mejor partición es [7,2,5] | [10,8] con sumas 14 y 18. Máximo = 18.\n"
+            "  Otras particiones dan máximos mayores (ej. [7,2,5,10]|[8] → máx=24).\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: weights = [1, 2, 3, 4, 5], k = 2\n"
+            "  Salida: 9\n"
+            "  Partición óptima: [1,2,3] | [4,5] → máx = max(6, 9) = 9.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: weights = [1, 4, 4], k = 3\n"
+            "  Salida: 4\n"
+            "  Cada camión lleva un paquete: [1]|[4]|[4] → máx = 4.\n\n"
+            "Algoritmo (Búsqueda binaria sobre la respuesta):\n"
+            "  La respuesta está en el rango [max(weights), sum(weights)].\n"
+            "  Función de verificación viable(cap): ¿se puede dividir en ≤ k tramos con suma ≤ cap?\n"
+            "    Recorre de izquierda a derecha, acumulando hasta superar cap; cuando supera, "
+            "abre un nuevo camión. Si necesitas más de k camiones, no es viable.\n"
+            "  Aplica búsqueda binaria sobre cap en [lo=max(weights), hi=sum(weights)].\n\n"
+            "Escribe `solve(weights, k)` que devuelva la carga máxima mínima."
+        ),
+        "test_cases": [
+            {"input": "[7, 2, 5, 10, 8], 2", "expected_output": "18"},
+            {"input": "[1, 2, 3, 4, 5], 2",  "expected_output": "9"},
+            {"input": "[1, 4, 4], 3",         "expected_output": "4"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(weights, k):\n"
+                "    def viable(cap):\n"
+                "        trucks, current = 1, 0\n"
+                "        for w in weights:\n"
+                "            if current + w > cap:\n"
+                "                trucks += 1\n"
+                "                current = 0\n"
+                "            current += w\n"
+                "        return trucks <= k\n"
+                "    lo, hi = max(weights), sum(weights)\n"
+                "    # Busqueda binaria: encuentra el minimo cap viable\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <vector>\n#include <numeric>\n#include <algorithm>\nusing namespace std;\n"
+                "bool viable(vector<int>& w, int k, long long cap) {\n"
+                "    int trucks = 1; long long cur = 0;\n"
+                "    for (int x : w) {\n"
+                "        if (cur + x > cap) { trucks++; cur = 0; }\n"
+                "        cur += x;\n"
+                "    }\n"
+                "    return trucks <= k;\n"
+                "}\n"
+                "long long solve(vector<int> weights, int k) {\n"
+                "    long long lo = *max_element(weights.begin(), weights.end());\n"
+                "    long long hi = accumulate(weights.begin(), weights.end(), 0LL);\n"
+                "    while (lo < hi) {\n"
+                "        long long mid = (lo + hi) / 2;\n"
+                "        if (viable(weights, k, mid)) hi = mid;\n"
+                "        else lo = mid + 1;\n"
+                "    }\n"
+                "    return lo;\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(int[] weights, int k) {\n"
+                "    int lo = 0, hi = 0;\n"
+                "    for (int w : weights) { lo = Math.max(lo, w); hi += w; }\n"
+                "    while (lo < hi) {\n"
+                "        int mid = lo + (hi - lo) / 2;\n"
+                "        if (viable(weights, k, mid)) hi = mid;\n"
+                "        else lo = mid + 1;\n"
+                "    }\n"
+                "    return lo;\n"
+                "}\n"
+                "static boolean viable(int[] w, int k, int cap) {\n"
+                "    int trucks = 1, cur = 0;\n"
+                "    for (int x : w) {\n"
+                "        if (cur + x > cap) { trucks++; cur = 0; }\n"
+                "        cur += x;\n"
+                "    }\n"
+                "    return trucks <= k;\n"
+                "}"
+            ),
+            "Go": ("func solve(weights []int, k int) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(int[] weights, int k) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "El Gran Repartidor de Carga", "en": "The Great Load Distributor", "zh": "最优装载分配"},
+        "description_i18n": {
+            "es": (
+                "Divide weights en k subarray contiguos minimizando la suma máxima. "
+                "Búsqueda binaria sobre la respuesta + verificación greedy.\n\n"
+                "Ejemplo 1: [7,2,5,10,8], k=2 → 18\n"
+                "Ejemplo 2: [1,2,3,4,5], k=2 → 9\n"
+                "Ejemplo 3: [1,4,4], k=3 → 4\n\n"
+                "Escribe `solve(weights, k)`."
+            ),
+            "en": (
+                "Split weights into k contiguous subarrays minimizing the maximum sum. "
+                "Binary search on the answer + greedy verification.\n\n"
+                "Example 1: [7,2,5,10,8], k=2 → 18\n"
+                "Example 2: [1,2,3,4,5], k=2 → 9\n\n"
+                "Write `solve(weights, k)`."
+            ),
+            "zh": (
+                "将 weights 分成 k 个连续子数组，最小化最大子数组和。二分答案 + 贪心验证。\n\n"
+                "示例 1：[7,2,5,10,8], k=2 → 18\n示例 2：[1,2,3,4,5], k=2 → 9\n\n"
+                "编写 `solve(weights, k)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  3000 — La Distancia de Edición
+    # ══════════════════════════════════════════
+    {
+        "title": "La Distancia de Edición",
+        "difficulty": 3000, "category": "Programación Dinámica", "total_solvers": 0,
+        "description": (
+            "El lingüista computacional Vladimir Levenshtein propuso en 1965 una medida para "
+            "cuantificar la diferencia entre dos cadenas de texto: la distancia de edición, "
+            "también conocida como distancia de Levenshtein. Esta métrica tiene aplicaciones "
+            "fundamentales en correctores ortográficos, bioinformática (alineación de secuencias "
+            "de ADN), reconocimiento de voz, búsqueda aproximada de texto y sistemas de "
+            "traducción automática.\n\n"
+            "La distancia de edición entre dos cadenas s y t es el número mínimo de operaciones "
+            "elementales necesarias para transformar s en t, donde las operaciones permitidas son:\n"
+            "  1. INSERTAR un carácter en cualquier posición de s.\n"
+            "  2. ELIMINAR un carácter de cualquier posición de s.\n"
+            "  3. REEMPLAZAR un carácter de s por otro carácter diferente.\n\n"
+            "Cada operación tiene coste 1.\n\n"
+            "Formalmente:\n"
+            "  Dadas dos cadenas s y t, devuelve el número mínimo de operaciones de inserción, "
+            "eliminación y reemplazo para transformar s en t.\n\n"
+            "Restricciones:\n"
+            "  0 ≤ len(s), len(t) ≤ 500\n"
+            "  s y t contienen solo letras minúsculas del alfabeto inglés.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: s = \"horse\", t = \"ros\"\n"
+            "  Salida: 3\n"
+            "  horse → rorse (h→r) → rose (eliminar r) → ros (eliminar e). 3 operaciones.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: s = \"intention\", t = \"execution\"\n"
+            "  Salida: 5\n"
+            "  Una secuencia válida de 5 operaciones transforma \"intention\" en \"execution\".\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: s = \"\", t = \"abc\"\n"
+            "  Salida: 3\n"
+            "  La cadena vacía requiere 3 inserciones para convertirse en \"abc\".\n\n"
+            "Algoritmo (DP 2D):\n"
+            "  dp[i][j] = distancia de edición entre s[0..i-1] y t[0..j-1].\n"
+            "  Caso base: dp[i][0] = i (i eliminaciones), dp[0][j] = j (j inserciones).\n"
+            "  Recurrencia:\n"
+            "    Si s[i-1] == t[j-1]: dp[i][j] = dp[i-1][j-1]  (no operation needed)\n"
+            "    Si no: dp[i][j] = 1 + min(dp[i-1][j],    # eliminar de s\n"
+            "                               dp[i][j-1],    # insertar en s\n"
+            "                               dp[i-1][j-1])  # reemplazar\n"
+            "  Respuesta: dp[len(s)][len(t)].\n"
+            "  Complejidad: O(m*n) tiempo y espacio (optimizable a O(min(m,n)) espacio).\n\n"
+            "Escribe `solve(s, t)` que devuelva la distancia de edición mínima."
+        ),
+        "test_cases": [
+            {"input": '"horse", "ros"',         "expected_output": "3"},
+            {"input": '"intention", "execution"',"expected_output": "5"},
+            {"input": '"", "abc"',               "expected_output": "3"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(s, t):\n"
+                "    m, n = len(s), len(t)\n"
+                "    dp = [[0]*(n+1) for _ in range(m+1)]\n"
+                "    for i in range(m+1): dp[i][0] = i\n"
+                "    for j in range(n+1): dp[0][j] = j\n"
+                "    # Rellena dp con la recurrencia de Levenshtein\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <string>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n"
+                "int solve(string s, string t) {\n"
+                "    int m = s.size(), n = t.size();\n"
+                "    vector<vector<int>> dp(m+1, vector<int>(n+1));\n"
+                "    for (int i = 0; i <= m; i++) dp[i][0] = i;\n"
+                "    for (int j = 0; j <= n; j++) dp[0][j] = j;\n"
+                "    for (int i = 1; i <= m; i++)\n"
+                "        for (int j = 1; j <= n; j++)\n"
+                "            dp[i][j] = s[i-1]==t[j-1] ? dp[i-1][j-1]\n"
+                "                       : 1 + min({dp[i-1][j], dp[i][j-1], dp[i-1][j-1]});\n"
+                "    return dp[m][n];\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(String s, String t) {\n"
+                "    int m = s.length(), n = t.length();\n"
+                "    int[][] dp = new int[m+1][n+1];\n"
+                "    for (int i = 0; i <= m; i++) dp[i][0] = i;\n"
+                "    for (int j = 0; j <= n; j++) dp[0][j] = j;\n"
+                "    for (int i = 1; i <= m; i++)\n"
+                "        for (int j = 1; j <= n; j++)\n"
+                "            dp[i][j] = s.charAt(i-1)==t.charAt(j-1) ? dp[i-1][j-1]\n"
+                "                       : 1 + Math.min(dp[i-1][j-1], Math.min(dp[i-1][j], dp[i][j-1]));\n"
+                "    return dp[m][n];\n"
+                "}"
+            ),
+            "Go": ("func solve(s, t string) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(string s, string t) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "La Distancia de Edición", "en": "Edit Distance", "zh": "编辑距离"},
+        "description_i18n": {
+            "es": (
+                "Dado s y t, devuelve el mínimo de inserciones, eliminaciones y reemplazos "
+                "para transformar s en t (distancia de Levenshtein).\n\n"
+                "Ejemplo 1: \"horse\",\"ros\" → 3\n"
+                "Ejemplo 2: \"intention\",\"execution\" → 5\n"
+                "Ejemplo 3: \"\",\"abc\" → 3\n\n"
+                "Escribe `solve(s, t)`."
+            ),
+            "en": (
+                "Given s and t, return the minimum number of insert/delete/replace operations "
+                "to transform s into t (Levenshtein distance).\n\n"
+                "Example 1: \"horse\",\"ros\" → 3\nExample 2: \"intention\",\"execution\" → 5\n\n"
+                "Write `solve(s, t)`."
+            ),
+            "zh": (
+                "给定 s 和 t，返回将 s 转换为 t 所需的最少插入、删除、替换操作次数（编辑距离）。\n\n"
+                "示例 1：\"horse\",\"ros\" → 3\n示例 2：\"\",\"abc\" → 3\n\n"
+                "编写 `solve(s, t)`。"
+            ),
+        },
+    },
+
+    # ══════════════════════════════════════════
+    #  3500 — Los Cortes del Palíndromo Mínimo
+    # ══════════════════════════════════════════
+    {
+        "title": "Los Cortes del Palíndromo Mínimo",
+        "difficulty": 3500, "category": "Programación Dinámica", "total_solvers": 0,
+        "description": (
+            "La investigadora Elena Krasnova trabaja en el Centro de Investigación en Algoritmos "
+            "de Complejidad de Moscú. Su proyecto actual involucra la partición de cadenas en "
+            "palíndromos: dada una cadena, ¿cuántos cortes mínimos se necesitan para que todos "
+            "los fragmentos resultantes sean palíndromos?\n\n"
+            "Este problema, conocido como 'Palindrome Partitioning II', es considerablemente más "
+            "difícil que simplemente encontrar si existe una partición palindrómica, y tiene "
+            "aplicaciones en compresión de texto y bioinformática (análisis de estructuras "
+            "secundarias de ARN).\n\n"
+            "Definiciones:\n"
+            "  - Un corte en la posición k divide la cadena en s[0..k] y s[k+1..n-1].\n"
+            "  - Una partición de n-1 posibles cortes divide la cadena en n partes.\n"
+            "  - Se busca el número mínimo de cortes tal que todas las partes sean palíndromos.\n\n"
+            "Formalmente:\n"
+            "  Dada una cadena s de longitud n, devuelve el número mínimo de cortes para que "
+            "cada segmento resultante sea un palíndromo.\n"
+            "  Si s ya es un palíndromo, la respuesta es 0 (no se necesita ningún corte).\n\n"
+            "Restricciones:\n"
+            "  1 ≤ len(s) ≤ 2000\n"
+            "  s contiene solo letras minúsculas del alfabeto inglés.\n\n"
+            "Ejemplo 1:\n"
+            "  Entrada: s = \"aab\"\n"
+            "  Salida: 1\n"
+            "  Partición: \"aa\" | \"b\". Ambas partes son palíndromos. 1 corte.\n\n"
+            "Ejemplo 2:\n"
+            "  Entrada: s = \"a\"\n"
+            "  Salida: 0\n"
+            "  Un solo carácter siempre es palíndromo.\n\n"
+            "Ejemplo 3:\n"
+            "  Entrada: s = \"ababababab\"\n"
+            "  Salida: 1\n"
+            "  Partición: \"ababa\" | \"babab\". Ambas son palíndromos. 1 corte es suficiente.\n\n"
+            "Algoritmo (DP en dos fases):\n"
+            "  Fase 1: Precalcular is_pal[i][j] = True si s[i..j] es palíndromo.\n"
+            "    Método: expand around center (O(n²)) o DP:\n"
+            "      is_pal[i][i] = True\n"
+            "      is_pal[i][i+1] = (s[i] == s[i+1])\n"
+            "      is_pal[i][j] = (s[i] == s[j]) and is_pal[i+1][j-1]  para j-i >= 2\n\n"
+            "  Fase 2: Calcular cuts[i] = mínimo cortes para s[0..i].\n"
+            "      cuts[i] = 0  si s[0..i] es palíndromo\n"
+            "      cuts[i] = min(cuts[j-1] + 1)  para todo j en [1..i] con is_pal[j][i]\n\n"
+            "  Respuesta: cuts[n-1]. Complejidad total: O(n²).\n\n"
+            "Escribe `solve(s)` que devuelva el número mínimo de cortes."
+        ),
+        "test_cases": [
+            {"input": '"aab"',         "expected_output": "1"},
+            {"input": '"a"',           "expected_output": "0"},
+            {"input": '"ababababab"',   "expected_output": "1"},
+        ],
+        "stub": {
+            "Python": (
+                "def solve(s):\n"
+                "    n = len(s)\n"
+                "    # Fase 1: precalcular is_pal[i][j]\n"
+                "    is_pal = [[False]*n for _ in range(n)]\n"
+                "    for i in range(n): is_pal[i][i] = True\n"
+                "    for length in range(2, n+1):\n"
+                "        for i in range(n - length + 1):\n"
+                "            j = i + length - 1\n"
+                "            if s[i] == s[j]:\n"
+                "                is_pal[i][j] = (length == 2) or is_pal[i+1][j-1]\n"
+                "    # Fase 2: dp de cortes minimos\n"
+                "    # cuts[i] = min cortes para s[0..i]\n"
+                "    pass"
+            ),
+            "C++": (
+                "#include <string>\n#include <vector>\n#include <climits>\nusing namespace std;\n"
+                "int solve(string s) {\n"
+                "    int n = s.size();\n"
+                "    vector<vector<bool>> pal(n, vector<bool>(n, false));\n"
+                "    for (int i = 0; i < n; i++) pal[i][i] = true;\n"
+                "    for (int len = 2; len <= n; len++)\n"
+                "        for (int i = 0; i <= n-len; i++) {\n"
+                "            int j = i+len-1;\n"
+                "            pal[i][j] = (s[i]==s[j]) && (len==2 || pal[i+1][j-1]);\n"
+                "        }\n"
+                "    vector<int> cuts(n, INT_MAX);\n"
+                "    for (int i = 0; i < n; i++) {\n"
+                "        if (pal[0][i]) { cuts[i] = 0; continue; }\n"
+                "        for (int j = 1; j <= i; j++)\n"
+                "            if (pal[j][i] && cuts[j-1]+1 < cuts[i])\n"
+                "                cuts[i] = cuts[j-1]+1;\n"
+                "    }\n"
+                "    return cuts[n-1];\n"
+                "}"
+            ),
+            "Java": (
+                "public static int solve(String s) {\n"
+                "    int n = s.length();\n"
+                "    boolean[][] pal = new boolean[n][n];\n"
+                "    for (int i = 0; i < n; i++) pal[i][i] = true;\n"
+                "    for (int len = 2; len <= n; len++)\n"
+                "        for (int i = 0; i <= n-len; i++) {\n"
+                "            int j = i+len-1;\n"
+                "            pal[i][j] = (s.charAt(i)==s.charAt(j)) && (len==2 || pal[i+1][j-1]);\n"
+                "        }\n"
+                "    int[] cuts = new int[n];\n"
+                "    java.util.Arrays.fill(cuts, Integer.MAX_VALUE);\n"
+                "    for (int i = 0; i < n; i++) {\n"
+                "        if (pal[0][i]) { cuts[i] = 0; continue; }\n"
+                "        for (int j = 1; j <= i; j++)\n"
+                "            if (pal[j][i]) cuts[i] = Math.min(cuts[i], cuts[j-1]+1);\n"
+                "    }\n"
+                "    return cuts[n-1];\n"
+                "}"
+            ),
+            "Go": ("func solve(s string) int {\n    return 0\n}"),
+            "C#": ("public static int Solve(string s) {\n    return 0;\n}"),
+        },
+        "title_i18n": {"es": "Los Cortes del Palíndromo Mínimo", "en": "Minimum Palindrome Cuts", "zh": "回文串最少分割"},
+        "description_i18n": {
+            "es": (
+                "Dada cadena s, devuelve el mínimo número de cortes para que todos los "
+                "segmentos sean palíndromos.\n\n"
+                "Algoritmo: DP en dos fases — precalcular is_pal[i][j], luego cuts[i].\n\n"
+                "Ejemplo 1: \"aab\" → 1\nEjemplo 2: \"a\" → 0\nEjemplo 3: \"ababababab\" → 1\n\n"
+                "Escribe `solve(s)`."
+            ),
+            "en": (
+                "Given string s, return the minimum cuts so every segment is a palindrome.\n\n"
+                "Algorithm: 2-phase DP — precompute is_pal[i][j], then cuts[i].\n\n"
+                "Example 1: \"aab\" → 1\nExample 2: \"a\" → 0\nExample 3: \"ababababab\" → 1\n\n"
+                "Write `solve(s)`."
+            ),
+            "zh": (
+                "给定字符串 s，返回使所有分段都是回文所需的最少切割次数。\n\n"
+                "算法：两阶段 DP——预计算 is_pal[i][j]，然后计算 cuts[i]。\n\n"
+                "示例 1：\"aab\" → 1\n示例 2：\"a\" → 0\n\n"
+                "编写 `solve(s)`。"
+            ),
+        },
+    },
+
 ]
