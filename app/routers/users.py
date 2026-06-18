@@ -24,6 +24,20 @@ _BG_VIDEO_MAX_BYTES = 10 * 1024 * 1024 # 10 MB video
 _PREMIUM_PLANS = {"plus", "max", "plus_boosted"}
 
 
+def _elo_rank(e: int) -> tuple:
+    """Returns (rank_name, tier 1-22) for a given ELO. Tier is used for SBMM."""
+    def _s(e, start, chunk): return min(3, max(1, (e - start) // chunk + 1))
+    T = ['I', 'II', 'III']
+    if e <= 75:   s = _s(e, 0, 26);    return f"Bronce {T[s-1]}",  s
+    if e <= 200:  s = _s(e, 76, 42);   return f"Plata {T[s-1]}",   3 + s
+    if e <= 500:  s = _s(e, 201, 100); return f"Oro {T[s-1]}",     6 + s
+    if e <= 900:  s = _s(e, 501, 134); return f"Platino {T[s-1]}", 9 + s
+    if e <= 1400: s = _s(e, 901, 167); return f"Diamante {T[s-1]}",12 + s
+    if e <= 2000: s = _s(e, 1401, 200);return f"Elite {T[s-1]}",   15 + s
+    if e <= 3000: s = _s(e, 2001, 334);return f"Campeon {T[s-1]}", 18 + s
+    return "Voidborn", 22
+
+
 def _validate_username(username: str):
     if not _USERNAME_RE.match(username):
         raise HTTPException(
@@ -74,32 +88,7 @@ async def get_user_profile(email: str = Depends(get_current_user)):
     higher_elo_count = await database.db.users.count_documents({"elo": {"$gt": elo}})
     global_rank = higher_elo_count + 1
 
-    def get_rank_info(e):
-        if e <= 75:
-            sub = min(3, max(1, (e // 26) + 1))
-            return f"Bronce {['I', 'II', 'III'][sub-1]}", sub
-        elif e <= 200:
-            sub = min(3, max(1, ((e - 76) // 75) + 1))
-            return f"Plata {['I', 'II', 'III'][sub-1]}", 3 + sub
-        elif e <= 500:
-            sub = min(3, max(1, ((e - 301) // 167) + 1))
-            return f"Oro {['I', 'II', 'III'][sub-1]}", 6 + sub
-        elif e <= 900:
-            sub = min(3, max(1, ((e - 801) // 167) + 1))
-            return f"Platino {['I', 'II', 'III'][sub-1]}", 9 + sub
-        elif e <= 1400:
-            sub = min(3, max(1, ((e - 1301) // 234) + 1))
-            return f"Diamante {['I', 'II', 'III'][sub-1]}", 12 + sub
-        elif e <= 2000:
-            sub = min(3, max(1, ((e - 1301) // 234) + 1))
-            return f"Elite {['I', 'II', 'III'][sub-1]}", 12 + sub
-        elif e <= 3000:
-            sub = min(3, max(1, ((e - 1301) // 234) + 1))
-            return f"Campeon {['I', 'II', 'III'][sub-1]}", 12 + sub
-        else:
-            return "Voidborn", 16
-
-    rank_name, tier = get_rank_info(elo)
+    rank_name, tier = _elo_rank(elo)
 
     return {
         "email": user["email"],
@@ -336,15 +325,7 @@ async def get_leaderboard(email: str = Depends(get_current_user)):
     async for u in cursor:
         elo = u.get("elo", 0)
 
-        # Calculate rank name for leaderboard
-        if elo <= 75: sub = min(3, max(1, (elo // 26) + 1)); rank_name = f"Bronce {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 200: sub = min(3, max(1, ((elo - 76) // 75) + 1)); rank_name = f"Plata {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 500: sub = min(3, max(1, ((elo - 301) // 167) + 1)); rank_name = f"Oro {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 900: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Platino {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 1400: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Diamante {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 2000: sub = min(3, max(1, ((elo - 1301) // 234) + 1)); rank_name = f"Elite {['I', 'II', 'III'][sub-1]}"
-        elif elo <= 3000: sub = min(3, max(1, ((elo - 801) // 167) + 1)); rank_name = f"Campeon {['I', 'II', 'III'][sub-1]}"
-        else: rank_name = "Voidborn"
+        rank_name, _ = _elo_rank(elo)
 
         users_list.append({
             "username": u.get("username", "?"),
@@ -372,14 +353,7 @@ async def get_leaderboard_all(
     ).sort("elo", -1).skip(skip).limit(limit)
 
     def _rank_name(elo):
-        if elo <= 75:   sub = min(3, max(1, (elo // 26) + 1));           return f"Bronce {['I','II','III'][sub-1]}"
-        if elo <= 200:  sub = min(3, max(1, ((elo - 76) // 75) + 1));    return f"Plata {['I','II','III'][sub-1]}"
-        if elo <= 500:  sub = min(3, max(1, ((elo - 301) // 167) + 1));  return f"Oro {['I','II','III'][sub-1]}"
-        if elo <= 900:  sub = min(3, max(1, ((elo - 801) // 167) + 1));  return f"Platino {['I','II','III'][sub-1]}"
-        if elo <= 1400: sub = min(3, max(1, ((elo - 801) // 167) + 1));  return f"Diamante {['I','II','III'][sub-1]}"
-        if elo <= 2000: sub = min(3, max(1, ((elo - 1301) // 234) + 1)); return f"Elite {['I','II','III'][sub-1]}"
-        if elo <= 3000: sub = min(3, max(1, ((elo - 801) // 167) + 1));  return f"Campeon {['I','II','III'][sub-1]}"
-        return "Voidborn"
+        return _elo_rank(elo)[0]
 
     result = []
     async for u in cursor:
@@ -436,36 +410,11 @@ async def get_public_profile(username: str, email: str = Depends(get_current_use
     higher_elo_count = await database.db.users.count_documents({"elo": {"$gt": elo}})
     global_rank = higher_elo_count + 1
 
-    def get_rank_info(e):
-        if e <= 75:
-            sub = min(3, max(1, (e // 26) + 1))
-            return f"Bronce {['I', 'II', 'III'][sub-1]}", sub
-        elif e <= 200:
-            sub = min(3, max(1, ((e - 76) // 75) + 1))
-            return f"Plata {['I', 'II', 'III'][sub-1]}", 3 + sub
-        elif e <= 500:
-            sub = min(3, max(1, ((e - 301) // 167) + 1))
-            return f"Oro {['I', 'II', 'III'][sub-1]}", 6 + sub
-        elif e <= 900:
-            sub = min(3, max(1, ((e - 801) // 167) + 1))
-            return f"Platino {['I', 'II', 'III'][sub-1]}", 9 + sub
-        elif e <= 1400:
-            sub = min(3, max(1, ((e - 1301) // 234) + 1))
-            return f"Diamante {['I', 'II', 'III'][sub-1]}", 12 + sub
-        elif e <= 2000:
-            sub = min(3, max(1, ((e - 1301) // 234) + 1))
-            return f"Elite {['I', 'II', 'III'][sub-1]}", 12 + sub
-        elif e <= 3000:
-            sub = min(3, max(1, ((e - 1301) // 234) + 1))
-            return f"Campeon {['I', 'II', 'III'][sub-1]}", 12 + sub
-        else:
-            return "Voidborn", 16
-
-    rank_name, tier = get_rank_info(elo)
+    rank_name, tier = _elo_rank(elo)
 
     # Max ELO and max rank
     max_elo = user.get("max_elo", elo)
-    max_rank_name, _ = get_rank_info(max_elo)
+    max_rank_name, _ = _elo_rank(max_elo)
 
     # Win rate
     wins = user.get("wins", 0)

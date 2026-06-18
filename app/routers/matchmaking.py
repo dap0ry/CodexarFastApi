@@ -21,12 +21,15 @@ pending_invites: dict = {}   # { invite_id: { "from": email, "to": email, "from_
 
 
 def _get_rank_tier(e: int) -> int:
-    if e <= 75:    return min(3, max(1, (e // 26) + 1))
-    elif e <= 300:  return 3 + min(3, max(1, ((e - 76) // 75) + 1))
-    elif e <= 800:  return 6 + min(3, max(1, ((e - 301) // 167) + 1))
-    elif e <= 1300: return 9 + min(3, max(1, ((e - 801) // 167) + 1))
-    elif e <= 2000: return 12 + min(3, max(1, ((e - 1301) // 234) + 1))
-    else:           return 16
+    def _s(e, start, chunk): return min(3, max(1, (e - start) // chunk + 1))
+    if e <= 75:   return _s(e, 0, 26)
+    if e <= 200:  return 3 + _s(e, 76, 42)
+    if e <= 500:  return 6 + _s(e, 201, 100)
+    if e <= 900:  return 9 + _s(e, 501, 134)
+    if e <= 1400: return 12 + _s(e, 901, 167)
+    if e <= 2000: return 15 + _s(e, 1401, 200)
+    if e <= 3000: return 18 + _s(e, 2001, 334)
+    return 22
 
 
 async def _build_player_data(email: str, user: dict) -> dict:
@@ -43,9 +46,25 @@ async def _build_player_data(email: str, user: dict) -> dict:
     }
 
 
-async def _pick_exercise() -> dict:
+def _diff_range(avg_elo: int) -> tuple:
+    if avg_elo <= 75:   return 800, 1000
+    if avg_elo <= 200:  return 1000, 1200
+    if avg_elo <= 500:  return 1200, 1600
+    if avg_elo <= 1400: return 1600, 2000
+    if avg_elo <= 2000: return 2000, 2200
+    return 2200, 9999
+
+
+async def _pick_exercise(avg_elo: int = 0) -> dict:
     from app.exercises_data import EXERCISES_SEED
-    valid_exercises = [ex for ex in EXERCISES_SEED if "test_cases" in ex and len(ex["test_cases"]) > 0]
+    diff_min, diff_max = _diff_range(avg_elo)
+    valid_exercises = [
+        ex for ex in EXERCISES_SEED
+        if "test_cases" in ex and ex["test_cases"]
+        and diff_min <= ex.get("difficulty", 0) <= diff_max
+    ]
+    if not valid_exercises:
+        valid_exercises = [ex for ex in EXERCISES_SEED if "test_cases" in ex and ex["test_cases"]]
     chosen_ex = dict(random.choice(valid_exercises) if valid_exercises else EXERCISES_SEED[0])
 
     db_exercise = await database.db.exercises.find_one({"title": chosen_ex["title"]})
@@ -83,7 +102,8 @@ async def _ws_handle_join(websocket: WebSocket, email: str, user: dict):
     if opponent_email:
         opp = waiting_players.pop(opponent_email)
         match_id = str(uuid.uuid4())
-        chosen_ex = await _pick_exercise()
+        avg_elo = (opp["data"]["elo"] + player_data["elo"]) // 2
+        chosen_ex = await _pick_exercise(avg_elo)
 
         active_matches[match_id] = {
             "player1": opp["data"],
